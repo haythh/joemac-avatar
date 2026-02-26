@@ -1,39 +1,264 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, screen } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, screen, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const http = require('http');
+const os = require('os');
 
+// ─── Config paths ─────────────────────────────────────────────────────────────
 const MESSAGES_FILE = path.join(__dirname, 'messages.json');
+const OPENCLAW_DIR = path.join(os.homedir(), '.openclaw');
+const CONFIG_FILE = path.join(OPENCLAW_DIR, 'bmo-avatar.json');
+const PORT = 7777;
 
 let mainWindow = null;
 let tray = null;
 let messageWatcher = null;
+let httpServer = null;
 
-// Ensure messages.json exists
+// ─── Persist config ───────────────────────────────────────────────────────────
+function loadConfig() {
+  try {
+    if (fs.existsSync(CONFIG_FILE)) {
+      return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+    }
+  } catch (e) {}
+  return { launchAtLogin: false, alwaysOnTop: true, firstRun: true };
+}
+
+function saveConfig(cfg) {
+  try {
+    fs.mkdirSync(OPENCLAW_DIR, { recursive: true });
+    fs.writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2));
+  } catch (e) {
+    console.error('Could not save config:', e.message);
+  }
+}
+
+let config = loadConfig();
+
+// ─── Ensure messages.json exists ──────────────────────────────────────────────
 if (!fs.existsSync(MESSAGES_FILE)) {
   fs.writeFileSync(MESSAGES_FILE, JSON.stringify({ text: '', emotion: 'idle', timestamp: 0 }));
 }
 
-function createTrayIcon() {
-  // Create a simple 16x16 teal square as tray icon (canvas-free fallback)
-  const iconPath = path.join(__dirname, 'renderer', 'tray-icon.png');
+// ─── OpenClaw detection ───────────────────────────────────────────────────────
+function findOpenClawSessions() {
+  try {
+    const agentsDir = path.join(OPENCLAW_DIR, 'agents');
+    if (!fs.existsSync(agentsDir)) return [];
+    const agents = fs.readdirSync(agentsDir);
+    const sessions = [];
+    for (const agent of agents) {
+      const sessionsDir = path.join(agentsDir, agent, 'sessions');
+      if (!fs.existsSync(sessionsDir)) continue;
+      try {
+        const files = fs.readdirSync(sessionsDir)
+          .filter(f => f.endsWith('.jsonl'))
+          .map(f => {
+            const fp = path.join(sessionsDir, f);
+            return { name: f, path: fp, mtime: fs.statSync(fp).mtimeMs };
+          });
+        sessions.push(...files);
+      } catch (e) {}
+    }
+    return sessions.sort((a, b) => b.mtime - a.mtime);
+  } catch (err) {
+    return [];
+  }
+}
 
-  // Use nativeImage to create a small colored icon
-  let icon;
-  if (fs.existsSync(iconPath)) {
-    icon = nativeImage.createFromPath(iconPath);
-  } else {
-    // Fallback: empty 16x16 icon
-    icon = nativeImage.createEmpty();
+function isOpenClawInstalled() {
+  return fs.existsSync(OPENCLAW_DIR) && findOpenClawSessions().length >= 0;
+}
+
+function findActiveSession() {
+  const sessions = findOpenClawSessions();
+  return sessions.length > 0 ? sessions[0].path : null;
+}
+
+// ─── Emotion & text helpers ───────────────────────────────────────────────────
+function detectEmotion(text) {
+  const lower = text.toLowerCase();
+  if (/🔥|🚀|nice|awesome|done|fixed|pushed|deployed|live|let's go/i.test(lower)) return 'happy';
+  if (/hmm|thinking|let me|checking|looking/i.test(lower)) return 'thinking';
+  if (/sorry|error|fail|broke|bug/i.test(lower)) return 'sad';
+  return 'idle';
+}
+
+function extractText(content) {
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    return content
+      .filter(c => c.type === 'text')
+      .map(c => c.text)
+      .join('\n');
+  }
+  return '';
+}
+
+// ─── Send message to BMO renderer ─────────────────────────────────────────────
+function sendToBmo(text, emotion = 'idle') {
+  if (!text || text.trim() === '' || text === 'NO_REPLY' || text === 'HEARTBEAT_OK') return;
+  const displayText = text.length > 200 ? text.substring(0, 197) + '...' : text;
+  const msg = { text: displayText, emotion, timestamp: Date.now() };
+
+  // Write to file for compatibility
+  try {
+    fs.writeFileSync(MESSAGES_FILE, JSON.stringify(msg, null, 2));
+  } catch (e) {}
+
+  // Send directly to renderer
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('new-message', msg);
+  }
+}
+
+// ─── Session JSONL tailing ────────────────────────────────────────────────────
+let lastSessionPath = null;
+let lastSize = 0;
+let sessionWatcher = null;
+let seenTimestamps = new Set();
+let sessionCheckInterval = null;
+
+function startSessionTailing() {
+  const sessionPath = findActiveSession();
+
+  if (!sessionPath) {
+    console.log('⏳ No OpenClaw session found, retrying in 5s...');
+    setTimeout(startSessionTailing, 5000);
+    return;
   }
 
-  tray = new Tray(icon);
-  tray.setToolTip('JoeMac Avatar');
+  if (sessionPath !== lastSessionPath) {
+    if (sessionWatcher) { sessionWatcher.close(); sessionWatcher = null; }
+    lastSessionPath = sessionPath;
+    lastSize = fs.statSync(sessionPath).size; // Don't replay history
+    seenTimestamps.clear();
+    console.log(`📂 Watching: ${path.basename(sessionPath)}`);
+  }
 
-  const contextMenu = Menu.buildFromTemplate([
-    {
-      label: 'JoeMac Avatar',
-      enabled: false
-    },
+  let debounce = null;
+
+  try {
+    sessionWatcher = fs.watch(sessionPath, (eventType) => {
+      if (eventType !== 'change') return;
+      clearTimeout(debounce);
+      debounce = setTimeout(() => {
+        try {
+          const stat = fs.statSync(sessionPath);
+          if (stat.size <= lastSize) return;
+
+          const fd = fs.openSync(sessionPath, 'r');
+          const buf = Buffer.alloc(stat.size - lastSize);
+          fs.readSync(fd, buf, 0, buf.length, lastSize);
+          fs.closeSync(fd);
+          lastSize = stat.size;
+
+          const newLines = buf.toString('utf8').split('\n').filter(l => l.trim());
+
+          for (const line of newLines) {
+            try {
+              const entry = JSON.parse(line);
+              if (entry.type !== 'message') continue;
+              if (!entry.message || entry.message.role !== 'assistant') continue;
+
+              const ts = entry.message.timestamp || entry.timestamp;
+              if (seenTimestamps.has(ts)) continue;
+              seenTimestamps.add(ts);
+              if (seenTimestamps.size > 100) {
+                seenTimestamps = new Set([...seenTimestamps].slice(-50));
+              }
+
+              const text = extractText(entry.message.content);
+              if (!text) continue;
+              if (text.startsWith('NO_REPLY') || text.startsWith('HEARTBEAT_OK')) continue;
+
+              const emotion = detectEmotion(text);
+              sendToBmo(text, emotion);
+            } catch (e) {}
+          }
+        } catch (err) {
+          console.error('Tail error:', err.message);
+        }
+      }, 200);
+    });
+
+    sessionWatcher.on('error', (err) => {
+      console.error('Session watcher error:', err.message);
+    });
+  } catch (err) {
+    console.error('Could not watch session file:', err.message);
+  }
+
+  // Periodically switch to newer sessions
+  if (!sessionCheckInterval) {
+    sessionCheckInterval = setInterval(() => {
+      const newest = findActiveSession();
+      if (newest && newest !== lastSessionPath) {
+        console.log('🔄 New session detected, switching...');
+        startSessionTailing();
+      }
+    }, 30000);
+  }
+}
+
+// ─── HTTP fallback server (port 7777) ─────────────────────────────────────────
+function startHttpServer() {
+  httpServer = http.createServer((req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS, GET');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') { res.writeHead(200); res.end(); return; }
+
+    if (req.method === 'POST' && req.url === '/message') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        try {
+          const msg = JSON.parse(body);
+          sendToBmo(msg.text, msg.emotion || 'idle');
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: true }));
+        } catch (err) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: false, error: err.message }));
+        }
+      });
+      return;
+    }
+
+    if (req.method === 'GET' && req.url === '/health') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        status: 'ok',
+        uptime: process.uptime(),
+        session: lastSessionPath ? path.basename(lastSessionPath) : null
+      }));
+      return;
+    }
+
+    res.writeHead(404);
+    res.end('Not found');
+  });
+
+  httpServer.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.log(`Port ${PORT} already in use (another bridge running?)`);
+    } else {
+      console.error('HTTP server error:', err.message);
+    }
+  });
+
+  httpServer.listen(PORT, '127.0.0.1', () => {
+    console.log(`🌐 HTTP fallback: http://127.0.0.1:${PORT}`);
+  });
+}
+
+// ─── Tray ──────────────────────────────────────────────────────────────────────
+function buildTrayMenu() {
+  return Menu.buildFromTemplate([
+    { label: 'BMO Avatar', enabled: false },
     { type: 'separator' },
     {
       label: 'Show / Hide',
@@ -48,28 +273,65 @@ function createTrayIcon() {
       }
     },
     {
-      label: 'Send Test Message',
-      click: () => {
-        const msg = {
-          text: "Hey! I'm JoeMac 👋",
-          emotion: 'happy',
-          timestamp: Date.now()
-        };
-        fs.writeFileSync(MESSAGES_FILE, JSON.stringify(msg, null, 2));
+      label: 'Always on Top',
+      type: 'checkbox',
+      checked: config.alwaysOnTop !== false,
+      click: (item) => {
+        config.alwaysOnTop = item.checked;
+        saveConfig(config);
+        if (mainWindow) mainWindow.setAlwaysOnTop(config.alwaysOnTop);
+      }
+    },
+    {
+      label: 'Launch at Login',
+      type: 'checkbox',
+      checked: !!config.launchAtLogin,
+      click: (item) => {
+        config.launchAtLogin = item.checked;
+        saveConfig(config);
+        app.setLoginItemSettings({ openAtLogin: item.checked });
       }
     },
     { type: 'separator' },
     {
-      label: 'Quit',
+      label: 'Send Test Message',
       click: () => {
-        app.quit();
+        sendToBmo("Hey! I'm BMO 👋 Everything's running great!", 'happy');
       }
+    },
+    { type: 'separator' },
+    {
+      label: `About BMO Avatar v${app.getVersion()}`,
+      click: () => {
+        dialog.showMessageBox(mainWindow, {
+          type: 'info',
+          title: 'BMO Avatar',
+          message: `BMO Avatar v${app.getVersion()}`,
+          detail: 'A floating desktop companion powered by OpenClaw.\n\nhttps://openclaw.ai',
+          buttons: ['OK']
+        });
+      }
+    },
+    {
+      label: 'Quit',
+      click: () => app.quit()
     }
   ]);
+}
 
-  tray.setContextMenu(contextMenu);
+function createTrayIcon() {
+  const iconPath = path.join(__dirname, 'renderer', 'tray-icon.png');
+  let icon;
+  if (fs.existsSync(iconPath)) {
+    icon = nativeImage.createFromPath(iconPath);
+  } else {
+    icon = nativeImage.createEmpty();
+  }
 
-  // Click tray icon to toggle window
+  tray = new Tray(icon);
+  tray.setToolTip('BMO Avatar');
+  tray.setContextMenu(buildTrayMenu());
+
   tray.on('click', () => {
     if (mainWindow) {
       if (mainWindow.isVisible()) {
@@ -81,6 +343,7 @@ function createTrayIcon() {
   });
 }
 
+// ─── Main window ───────────────────────────────────────────────────────────────
 function createWindow() {
   const { width: screenW, height: screenH } = screen.getPrimaryDisplay().workAreaSize;
 
@@ -92,7 +355,7 @@ function createWindow() {
     frame: false,
     transparent: true,
     backgroundColor: '#00000000',
-    alwaysOnTop: true,
+    alwaysOnTop: config.alwaysOnTop !== false,
     resizable: true,
     minWidth: 200,
     minHeight: 300,
@@ -116,26 +379,28 @@ function createWindow() {
     mainWindow = null;
   });
 
-  // Watch messages file
-  startMessageWatcher();
+  // Legacy messages.json watcher (for compatibility with external tools)
+  startMessageFileWatcher();
 }
 
-function startMessageWatcher() {
+function startMessageFileWatcher() {
   if (messageWatcher) {
     messageWatcher.close();
   }
 
   let debounceTimer = null;
+  let lastTimestamp = 0;
 
   messageWatcher = fs.watch(MESSAGES_FILE, (eventType) => {
     if (eventType === 'change') {
-      // Debounce to avoid double-fires
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
         try {
           const raw = fs.readFileSync(MESSAGES_FILE, 'utf8');
           const msg = JSON.parse(raw);
-          if (mainWindow && msg.text && msg.timestamp > 0) {
+          // Only forward if newer than last we sent (avoids echo loop)
+          if (mainWindow && msg.text && msg.timestamp > 0 && msg.timestamp !== lastTimestamp) {
+            lastTimestamp = msg.timestamp;
             mainWindow.webContents.send('new-message', msg);
           }
         } catch (err) {
@@ -150,17 +415,56 @@ function startMessageWatcher() {
   });
 }
 
-// IPC: renderer can request window drag
-ipcMain.on('start-drag', () => {
-  // Drag is handled via -webkit-app-region in CSS
-});
+// ─── First-run experience ──────────────────────────────────────────────────────
+function handleFirstRun() {
+  if (!config.firstRun) return;
 
-// IPC: renderer requests current messages file path
+  config.firstRun = false;
+  saveConfig(config);
+
+  // Wait for renderer to load before sending welcome
+  if (mainWindow) {
+    mainWindow.webContents.once('did-finish-load', () => {
+      setTimeout(() => {
+        if (!fs.existsSync(OPENCLAW_DIR)) {
+          // OpenClaw not detected
+          dialog.showMessageBox(mainWindow, {
+            type: 'warning',
+            title: 'OpenClaw Not Detected',
+            message: 'OpenClaw is not installed.',
+            detail: 'BMO Avatar works best with OpenClaw installed.\n\nVisit https://openclaw.ai to get started.',
+            buttons: ['Open openclaw.ai', 'Dismiss']
+          }).then(result => {
+            if (result.response === 0) {
+              shell.openExternal('https://openclaw.ai');
+            }
+          });
+        } else {
+          // OpenClaw detected — send welcome
+          sendToBmo("Hey! I'm connected to OpenClaw! 👋", 'happy');
+        }
+      }, 1500);
+    });
+  }
+}
+
+// ─── IPC ───────────────────────────────────────────────────────────────────────
+ipcMain.on('start-drag', () => {});
 ipcMain.handle('get-messages-path', () => MESSAGES_FILE);
 
+// ─── App lifecycle ─────────────────────────────────────────────────────────────
 app.whenReady().then(() => {
   createWindow();
   createTrayIcon();
+  startHttpServer();
+
+  // Start session tailing if OpenClaw exists
+  if (fs.existsSync(OPENCLAW_DIR)) {
+    startSessionTailing();
+  }
+
+  // First run experience
+  handleFirstRun();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -176,8 +480,8 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
-  if (messageWatcher) {
-    messageWatcher.close();
-    messageWatcher = null;
-  }
+  if (messageWatcher) { messageWatcher.close(); messageWatcher = null; }
+  if (sessionWatcher) { sessionWatcher.close(); sessionWatcher = null; }
+  if (sessionCheckInterval) { clearInterval(sessionCheckInterval); sessionCheckInterval = null; }
+  if (httpServer) { httpServer.close(); httpServer = null; }
 });

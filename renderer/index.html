@@ -279,7 +279,7 @@
         <!-- Screen bezel -->
         <rect x="116" y="116" width="168" height="128" rx="12" fill="#2B473F" />
         <!-- Screen display -->
-        <rect x="120" y="120" width="160" height="120" rx="8" fill="#D1F2DC" />
+        <rect id="screen-bg" x="120" y="120" width="160" height="120" rx="8" fill="#D1F2DC" style="transition: fill 0.6s ease"/>
         <!-- Screen shine -->
         <polygon points="120,155 165,120 185,120 120,170" fill="#FFFFFF" opacity="0.3" />
 
@@ -290,11 +290,13 @@
         <!-- ── LEFT EYE ── -->
         <g id="left-eye">
           <circle cx="160" cy="175" r="6" fill="#1D2D2A" />
+          <path id="left-eye-happy" d="M 150 178 Q 160 168 170 178" fill="none" stroke="#1D2D2A" stroke-width="4" stroke-linecap="round" style="display:none"/>
         </g>
 
         <!-- ── RIGHT EYE ── -->
         <g id="right-eye">
           <circle cx="240" cy="175" r="6" fill="#1D2D2A" />
+          <path id="right-eye-happy" d="M 230 178 Q 240 168 250 178" fill="none" stroke="#1D2D2A" stroke-width="4" stroke-linecap="round" style="display:none"/>
         </g>
 
         <!-- ── MOUTH ── -->
@@ -331,7 +333,57 @@
       </g>
     </svg>
   </div>
+
+  <!-- Shadow under BMO -->
+  <div id="bmo-shadow"></div>
+
+  <!-- Sparkle container -->
+  <div id="sparkles"></div>
 </div>
+
+<style>
+  #bmo-shadow {
+    width: 120px;
+    height: 14px;
+    background: radial-gradient(ellipse, rgba(0,0,0,0.18) 0%, transparent 70%);
+    border-radius: 50%;
+    margin-top: -8px;
+    transition: all 0.5s ease;
+  }
+
+  /* Sitting pose */
+  #bmo-wrapper.sitting {
+    animation: none !important;
+    transform: translateY(20px);
+  }
+  #bmo-wrapper.sitting #legs path {
+    transition: d 0.5s ease;
+  }
+
+  /* Sparkles */
+  #sparkles {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    z-index: 200;
+  }
+  .sparkle {
+    position: absolute;
+    font-size: 16px;
+    animation: sparkle-float 1s ease-out forwards;
+    pointer-events: none;
+  }
+  @keyframes sparkle-float {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-40px) scale(0.3); }
+  }
+
+  /* Click feedback */
+  #bmo-wrapper.clicked {
+    transition: transform 0.1s;
+    transform: scale(0.95);
+  }
+</style>
 
 <script src="bmo.js"></script>
 </body>
