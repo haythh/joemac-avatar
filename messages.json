@@ -1,5 +1,6 @@
 {
-  "text": "Now update `handleMessage` to pass audioPath:",
+  "text": "Now update the renderer to use the preload helper:",
   "emotion": "idle",
-  "timestamp": 1772093625298
+  "timestamp": 1772094149785,
+  "audioPath": "/Users/haythemhaddad/.openclaw/workspace/joemac-avatar/audio/bmo-1772094150571.mp3"
 }

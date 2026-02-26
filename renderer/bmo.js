@@ -510,9 +510,15 @@ function doSpeak(text, emotion, doneCallback, audioPath) {
 
   if (audioPath) {
     // Play TTS audio and sync duration
-    currentAudio = new Audio('file://' + audioPath);
+    // Load audio via preload (avoids file:// security blocks)
+    let audioSrc = audioPath;
+    if (window.joemac && window.joemac.readAudioFile) {
+      const dataUrl = window.joemac.readAudioFile(audioPath);
+      if (dataUrl) audioSrc = dataUrl;
+    }
+    currentAudio = new Audio(audioSrc);
     currentAudio.volume = 0.8;
-    currentAudio.play().catch(() => {});
+    currentAudio.play().catch(err => { console.error('Audio play error:', err); });
     currentAudio.onended = () => { finishSpeaking(); };
     // Fallback timeout in case audio fails
     const fallbackDuration = Math.max(3000, text.length * 60);

@@ -24,6 +24,17 @@ contextBridge.exposeInMainWorld('joemac', {
   // Get messages file path
   getMessagesPath: () => ipcRenderer.invoke('get-messages-path'),
 
+  // Read audio file as base64 data URL
+  readAudioFile: (filePath) => {
+    try {
+      const data = fs.readFileSync(filePath);
+      return 'data:audio/mpeg;base64,' + data.toString('base64');
+    } catch (e) {
+      console.error('Failed to read audio:', e.message);
+      return null;
+    }
+  },
+
   // Platform info
   platform: process.platform,
 
