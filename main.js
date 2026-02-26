@@ -85,18 +85,20 @@ function createWindow() {
   const { width: screenW, height: screenH } = screen.getPrimaryDisplay().workAreaSize;
 
   mainWindow = new BrowserWindow({
-    width: 300,
-    height: 450,
-    x: screenW - 340,
-    y: screenH - 500,
+    width: 320,
+    height: 480,
+    x: screenW - 360,
+    y: screenH - 530,
     frame: false,
     transparent: true,
+    backgroundColor: '#00000000',
     alwaysOnTop: true,
     resizable: true,
     minWidth: 200,
     minHeight: 300,
     skipTaskbar: true,
     hasShadow: false,
+    vibrancy: undefined,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

@@ -14,7 +14,7 @@
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background: transparent;
+    background: transparent !important;
     -webkit-app-region: no-drag;
     font-family: 'Space Grotesk', system-ui, sans-serif;
   }
@@ -29,12 +29,13 @@
     padding-bottom: 10px;
     position: relative;
     user-select: none;
+    background: transparent !important;
   }
 
   /* ─── Speech bubble ─── */
   #speech-bubble {
     position: absolute;
-    bottom: calc(100% - 40px);
+    bottom: calc(100% - 20px);
     left: 50%;
     transform: translateX(-50%);
     background: rgba(255, 255, 255, 0.96);
@@ -71,8 +72,8 @@
   /* ─── BMO container ─── */
   #bmo-wrapper {
     position: relative;
-    width: 240px;
-    height: 360px;
+    width: 280px;
+    height: 420px;
     -webkit-app-region: drag;
     cursor: grab;
   }
@@ -93,16 +94,16 @@
   /* ─── WAVE ─── */
   @keyframes arm-wave {
     0%   { transform: rotate(0deg); }
-    15%  { transform: rotate(-50deg) translateY(-4px); }
-    30%  { transform: rotate(-15deg) translateY(-2px); }
-    45%  { transform: rotate(-55deg) translateY(-5px); }
-    60%  { transform: rotate(-20deg) translateY(-3px); }
-    75%  { transform: rotate(-50deg) translateY(-4px); }
+    15%  { transform: rotate(-60deg); }
+    30%  { transform: rotate(-20deg); }
+    45%  { transform: rotate(-65deg); }
+    60%  { transform: rotate(-25deg); }
+    75%  { transform: rotate(-60deg); }
     100% { transform: rotate(0deg); }
   }
   #right-arm.wave {
-    animation: arm-wave 0.55s ease-in-out 3;
-    transform-origin: 178px 108px;
+    animation: arm-wave 0.6s ease-in-out 3;
+    transform-origin: 170px 100px;
   }
 
   /* ─── THINKING ─── */
@@ -114,11 +115,11 @@
 
   @keyframes arm-think {
     0%, 100% { transform: rotate(0deg); }
-    50%      { transform: rotate(35deg) translateY(-8px); }
+    50%      { transform: rotate(40deg) translateY(-10px); }
   }
   #left-arm.thinking {
     animation: arm-think 1.5s ease-in-out infinite;
-    transform-origin: 22px 108px;
+    transform-origin: 30px 100px;
   }
 
   @keyframes eye-look-side {
@@ -140,21 +141,21 @@
 
   @keyframes arm-gesture-left {
     0%, 100% { transform: rotate(0deg); }
-    30%      { transform: rotate(-15deg); }
-    60%      { transform: rotate(10deg); }
+    30%      { transform: rotate(-18deg); }
+    60%      { transform: rotate(12deg); }
   }
   @keyframes arm-gesture-right {
     0%, 100% { transform: rotate(0deg); }
-    30%      { transform: rotate(15deg); }
-    60%      { transform: rotate(-10deg); }
+    30%      { transform: rotate(18deg); }
+    60%      { transform: rotate(-12deg); }
   }
   #bmo-wrapper.speaking #left-arm {
     animation: arm-gesture-left 0.6s ease-in-out infinite;
-    transform-origin: 22px 108px;
+    transform-origin: 30px 100px;
   }
   #bmo-wrapper.speaking #right-arm {
     animation: arm-gesture-right 0.6s ease-in-out 0.1s infinite;
-    transform-origin: 178px 108px;
+    transform-origin: 170px 100px;
   }
 
   @keyframes screen-glow {
@@ -166,24 +167,29 @@
   /* ─── HAPPY ─── */
   @keyframes bmo-bounce {
     0%, 100% { transform: translateY(0px) scale(1); }
-    30%      { transform: translateY(-12px) scale(1.03); }
+    30%      { transform: translateY(-14px) scale(1.03); }
     50%      { transform: translateY(-8px) scale(1.02); }
-    70%      { transform: translateY(-14px) scale(1.03); }
+    70%      { transform: translateY(-16px) scale(1.03); }
   }
   #bmo-wrapper.happy { animation: bmo-bounce 0.6s ease-in-out 2; }
 
-  @keyframes arms-happy {
+  @keyframes arms-happy-left {
     0%, 100% { transform: rotate(0deg); }
-    40%      { transform: rotate(-55deg) translateY(-10px); }
-    70%      { transform: rotate(-45deg) translateY(-8px); }
+    40%      { transform: rotate(60deg) translateY(-12px); }
+    70%      { transform: rotate(50deg) translateY(-10px); }
+  }
+  @keyframes arms-happy-right {
+    0%, 100% { transform: rotate(0deg); }
+    40%      { transform: rotate(-60deg) translateY(-12px); }
+    70%      { transform: rotate(-50deg) translateY(-10px); }
   }
   #bmo-wrapper.happy #left-arm {
-    animation: arms-happy 0.6s ease-in-out 2;
-    transform-origin: 22px 108px;
+    animation: arms-happy-left 0.6s ease-in-out 2;
+    transform-origin: 30px 100px;
   }
   #bmo-wrapper.happy #right-arm {
-    animation: arms-happy 0.6s ease-in-out 2 0.05s;
-    transform-origin: 178px 108px;
+    animation: arms-happy-right 0.6s ease-in-out 2 0.05s;
+    transform-origin: 170px 100px;
   }
 
   /* ─── BLINK ─── */
@@ -202,121 +208,130 @@
   <div id="speech-bubble"></div>
 
   <div id="bmo-wrapper">
-    <svg viewBox="0 0 200 340" xmlns="http://www.w3.org/2000/svg" id="bmo-svg">
+    <svg viewBox="0 0 200 380" xmlns="http://www.w3.org/2000/svg" id="bmo-svg">
       <defs>
         <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stop-color="#5de8c8" />
-          <stop offset="100%" stop-color="#4acfb0" />
+          <stop offset="0%" stop-color="#5ee8ca" />
+          <stop offset="100%" stop-color="#4cd4b4" />
         </linearGradient>
-        <linearGradient id="sideGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <linearGradient id="sideGrad" x1="0%" y1="0%" x2="100%" y2="0%">
           <stop offset="0%" stop-color="#3cb89a" />
-          <stop offset="100%" stop-color="#2fa384" />
+          <stop offset="100%" stop-color="#34a88c" />
         </linearGradient>
         <linearGradient id="screenGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stop-color="#a8f0d8" />
-          <stop offset="100%" stop-color="#88e4c8" />
+          <stop offset="0%" stop-color="#aaf0dc" />
+          <stop offset="100%" stop-color="#8ae8cc" />
+        </linearGradient>
+        <linearGradient id="topGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+          <stop offset="0%" stop-color="#5ee8ca" />
+          <stop offset="100%" stop-color="#70f0d6" />
         </linearGradient>
       </defs>
 
-      <!-- ═══ LEFT ARM ═══ -->
+      <!-- ═══ LEFT ARM (long, noodle-like, hangs to mid-thigh) ═══ -->
       <g id="left-arm">
-        <path d="M32,112 Q18,118 12,135 Q8,148 16,152" stroke="#3cb89a" stroke-width="8" fill="none" stroke-linecap="round"/>
-        <ellipse cx="16" cy="154" rx="7" ry="5" fill="#4acfb0" stroke="#2c8a6e" stroke-width="1.5"/>
+        <path d="M28,104 Q10,120 6,150 Q2,175 10,195" stroke="#42c8a6" stroke-width="9" fill="none" stroke-linecap="round"/>
+        <ellipse cx="11" cy="198" rx="8" ry="6" fill="#4cd4b4" stroke="#2c9a7e" stroke-width="1.5"/>
       </g>
 
-      <!-- ═══ RIGHT ARM ═══ -->
+      <!-- ═══ RIGHT ARM (long, noodle-like) ═══ -->
       <g id="right-arm">
-        <path d="M168,112 Q182,118 188,135 Q192,148 184,152" stroke="#3cb89a" stroke-width="8" fill="none" stroke-linecap="round"/>
-        <ellipse cx="184" cy="154" rx="7" ry="5" fill="#4acfb0" stroke="#2c8a6e" stroke-width="1.5"/>
+        <path d="M172,104 Q190,120 194,150 Q198,175 190,195" stroke="#42c8a6" stroke-width="9" fill="none" stroke-linecap="round"/>
+        <ellipse cx="189" cy="198" rx="8" ry="6" fill="#4cd4b4" stroke="#2c9a7e" stroke-width="1.5"/>
       </g>
 
-      <!-- ═══ BODY (3D box) ═══ -->
+      <!-- ═══ BODY (3D box perspective) ═══ -->
       <g id="body">
-        <!-- Right side panel (darker, perspective) -->
-        <path d="M155,28 L175,18 L175,218 L155,228 Z" fill="url(#sideGrad)" stroke="#2c8a6e" stroke-width="2"/>
-        
+        <!-- Right side panel (wider for better 3D) -->
+        <path d="M155,22 L185,10 L185,238 L155,250 Z" fill="url(#sideGrad)" stroke="#2c9a7e" stroke-width="2"/>
+
         <!-- "BMO" text on side -->
-        <text x="165" y="90" font-family="Arial Black, Arial" font-weight="900" font-size="18" fill="#1a5c4a" transform="rotate(0)" text-anchor="middle">B</text>
-        <text x="165" y="115" font-family="Arial Black, Arial" font-weight="900" font-size="18" fill="#1a5c4a" text-anchor="middle">M</text>
-        <text x="165" y="140" font-family="Arial Black, Arial" font-weight="900" font-size="18" fill="#1a5c4a" text-anchor="middle">O</text>
-        
-        <!-- Speaker dots on side -->
-        <g fill="#1a5c4a">
-          <circle cx="160" cy="158" r="2"/><circle cx="167" cy="158" r="2"/><circle cx="174" cy="158" r="2"/>
-          <circle cx="160" cy="165" r="2"/><circle cx="167" cy="165" r="2"/><circle cx="174" cy="165" r="2"/>
-          <circle cx="160" cy="172" r="2"/><circle cx="167" cy="172" r="2"/><circle cx="174" cy="172" r="2"/>
-          <circle cx="160" cy="179" r="2"/><circle cx="167" cy="179" r="2"/><circle cx="174" cy="179" r="2"/>
+        <text x="170" y="85" font-family="'Arial Black', 'Impact', sans-serif" font-weight="900" font-size="22" fill="#1a6650" text-anchor="middle">B</text>
+        <text x="170" y="115" font-family="'Arial Black', 'Impact', sans-serif" font-weight="900" font-size="22" fill="#1a6650" text-anchor="middle">M</text>
+        <text x="170" y="145" font-family="'Arial Black', 'Impact', sans-serif" font-weight="900" font-size="22" fill="#1a6650" text-anchor="middle">O</text>
+
+        <!-- Speaker dots on side (4 rows × 3 cols) -->
+        <g fill="#1a6650">
+          <circle cx="163" cy="162" r="2.5"/><circle cx="170" cy="162" r="2.5"/><circle cx="177" cy="162" r="2.5"/>
+          <circle cx="163" cy="170" r="2.5"/><circle cx="170" cy="170" r="2.5"/><circle cx="177" cy="170" r="2.5"/>
+          <circle cx="163" cy="178" r="2.5"/><circle cx="170" cy="178" r="2.5"/><circle cx="177" cy="178" r="2.5"/>
+          <circle cx="163" cy="186" r="2.5"/><circle cx="170" cy="186" r="2.5"/><circle cx="177" cy="186" r="2.5"/>
+          <circle cx="163" cy="194" r="2.5"/><circle cx="170" cy="194" r="2.5"/><circle cx="177" cy="194" r="2.5"/>
         </g>
 
         <!-- Top face (3D perspective) -->
-        <path d="M30,28 L50,18 L175,18 L155,28 Z" fill="#6cf0d4" stroke="#2c8a6e" stroke-width="2"/>
+        <path d="M28,22 L58,10 L185,10 L155,22 Z" fill="url(#topGrad)" stroke="#2c9a7e" stroke-width="2"/>
 
         <!-- Front face -->
-        <rect x="30" y="28" width="125" height="200" rx="8" fill="url(#bodyGrad)" stroke="#2c8a6e" stroke-width="2.5"/>
+        <rect x="28" y="22" width="127" height="228" rx="8" fill="url(#bodyGrad)" stroke="#2c9a7e" stroke-width="2.5"/>
 
         <!-- ── SCREEN ── -->
         <g id="screen">
-          <!-- Screen bezel -->
-          <rect x="42" y="40" width="100" height="80" rx="6" fill="#3aab8a"/>
+          <!-- Screen bezel (thinner) -->
+          <rect x="40" y="34" width="103" height="88" rx="5" fill="#3aaa8a"/>
           <!-- Screen display -->
-          <rect x="46" y="44" width="92" height="72" rx="4" fill="url(#screenGrad)"/>
+          <rect x="44" y="38" width="95" height="80" rx="3" fill="url(#screenGrad)"/>
 
-          <!-- ── LEFT EYE (simple dot) ── -->
+          <!-- ── LEFT EYE (simple oval dot) ── -->
           <g id="left-eye">
-            <ellipse cx="72" cy="72" rx="4" ry="5" fill="#2c3e50"/>
+            <ellipse cx="72" cy="70" rx="4.5" ry="5.5" fill="#2c3e50"/>
           </g>
 
-          <!-- ── RIGHT EYE (simple dot) ── -->
+          <!-- ── RIGHT EYE (simple oval dot) ── -->
           <g id="right-eye">
-            <ellipse cx="112" cy="72" rx="4" ry="5" fill="#2c3e50"/>
+            <ellipse cx="112" cy="70" rx="4.5" ry="5.5" fill="#2c3e50"/>
           </g>
 
           <!-- ── MOUTH ── -->
           <g id="mouth">
-            <path id="mouth-path" d="M78,92 Q92,100 108,92" stroke="#2c3e50" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+            <path id="mouth-path" d="M78,96 Q92,104 108,96" stroke="#2c3e50" stroke-width="2.5" fill="none" stroke-linecap="round"/>
           </g>
         </g>
 
-        <!-- ── Small dark circle (above card slot) ── -->
-        <circle cx="130" cy="130" r="3.5" fill="#1a5c4a"/>
+        <!-- ── Small dark dot (indicator) ── -->
+        <circle cx="130" cy="132" r="4" fill="#1a6650"/>
 
         <!-- ── CARD SLOT ── -->
-        <rect x="55" y="132" width="60" height="8" rx="2" fill="#1a3a30" stroke="#2c8a6e" stroke-width="1"/>
+        <rect x="52" y="134" width="65" height="9" rx="3" fill="#1a4a3a" stroke="#2c9a7e" stroke-width="0.8"/>
 
-        <!-- ── D-PAD (yellow) ── -->
+        <!-- ── D-PAD (yellow, bigger) ── -->
         <g id="dpad">
-          <rect x="48" y="161" width="28" height="10" rx="2" fill="#f0c040" stroke="#d4a830" stroke-width="1.2"/>
-          <rect x="56" y="153" width="12" height="26" rx="2" fill="#f0c040" stroke="#d4a830" stroke-width="1.2"/>
+          <rect x="44" y="166" width="32" height="12" rx="2.5" fill="#f0c030" stroke="#d4a820" stroke-width="1.2"/>
+          <rect x="54" y="156" width="12" height="32" rx="2.5" fill="#f0c030" stroke="#d4a820" stroke-width="1.2"/>
         </g>
 
-        <!-- ── TRIANGLE button (blue) ── -->
-        <polygon points="104,158 98,168 110,168" fill="#4fb8e0" stroke="#3a9cc4" stroke-width="1"/>
+        <!-- ── TRIANGLE button (blue, bigger) ── -->
+        <polygon points="104,160 96,174 112,174" fill="#4fb8e0" stroke="#3a9cc4" stroke-width="1.2"/>
 
-        <!-- ── CIRCLE button (green) ── -->
-        <circle cx="122" cy="165" r="5" fill="#5cc460" stroke="#48a84c" stroke-width="1"/>
+        <!-- ── CIRCLE button (green, bigger) ── -->
+        <circle cx="126" cy="168" r="6.5" fill="#5cc460" stroke="#48a84c" stroke-width="1.2"/>
 
         <!-- ── BIG RED BUTTON ── -->
-        <circle cx="115" cy="183" r="9" fill="#e74c3c" stroke="#c0392b" stroke-width="1.5"/>
-        <circle cx="113" cy="181" r="3" fill="rgba(255,255,255,0.25)"/>
+        <circle cx="118" cy="192" r="11" fill="#e74c3c" stroke="#c0392b" stroke-width="1.8"/>
+        <circle cx="115" cy="189" r="4" fill="rgba(255,255,255,0.25)"/>
 
         <!-- ── Bottom speaker grilles (two pill shapes) ── -->
-        <g fill="#2c8a6e">
-          <rect x="56" y="202" width="18" height="5" rx="2.5"/>
-          <rect x="80" y="202" width="18" height="5" rx="2.5"/>
+        <g fill="#2c9a7e">
+          <rect x="54" y="216" width="22" height="5" rx="2.5"/>
+          <rect x="82" y="216" width="22" height="5" rx="2.5"/>
         </g>
+
+        <!-- ── Headphone jack on right side ── -->
+        <circle cx="155" cy="210" r="4" fill="#1a4a3a" stroke="#2c9a7e" stroke-width="1"/>
+        <path d="M155,214 Q158,225 152,230" stroke="#2c9a7e" stroke-width="1.5" fill="none" stroke-linecap="round"/>
       </g>
 
-      <!-- ═══ LEGS ═══ -->
+      <!-- ═══ LEGS (longer, thinner, ~40% of total height) ═══ -->
       <g id="legs">
         <!-- Left leg -->
-        <rect x="60" y="225" width="14" height="50" rx="7" fill="#3cb89a" stroke="#2c8a6e" stroke-width="1.5"/>
-        <!-- Left foot -->
-        <ellipse cx="67" cy="278" rx="14" ry="6" fill="#2c8a6e"/>
+        <rect x="58" y="248" width="12" height="70" rx="6" fill="#3cb89a" stroke="#2c9a7e" stroke-width="1.5"/>
+        <!-- Left foot (small nub) -->
+        <ellipse cx="64" cy="320" rx="11" ry="5" fill="#2c9a7e"/>
 
         <!-- Right leg -->
-        <rect x="120" y="225" width="14" height="50" rx="7" fill="#3cb89a" stroke="#2c8a6e" stroke-width="1.5"/>
-        <!-- Right foot -->
-        <ellipse cx="127" cy="278" rx="14" ry="6" fill="#2c8a6e"/>
+        <rect x="122" y="248" width="12" height="70" rx="6" fill="#3cb89a" stroke="#2c9a7e" stroke-width="1.5"/>
+        <!-- Right foot (small nub) -->
+        <ellipse cx="128" cy="320" rx="11" ry="5" fill="#2c9a7e"/>
       </g>
     </svg>
   </div>
