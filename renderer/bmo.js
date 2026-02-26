@@ -58,19 +58,36 @@ function scheduleBlink() {
 }
 
 function doBlink() {
-  if (currentState === 'thinking') {
-    // Eyes look sideways instead of blinking during thinking
+  if (currentState === 'thinking' || isSleeping) {
     scheduleBlink();
     return;
   }
 
-  // Quick close → open by momentarily scaling the eye groups
-  [leftEye, rightEye].forEach(eye => {
-    eye.classList.add('blinking');
-    eye.addEventListener('animationend', () => {
-      eye.classList.remove('blinking');
-    }, { once: true });
-  });
+  // Get the actual circle elements inside the eye groups
+  const leftCircle = leftEye.querySelector('circle');
+  const rightCircle = rightEye.querySelector('circle');
+  if (!leftCircle || !rightCircle) { scheduleBlink(); return; }
+
+  // Get center Y of each eye for proper transform origin
+  const lcy = leftCircle.getAttribute('cy');
+  const rcy = rightCircle.getAttribute('cy');
+
+  // Squash vertically from center
+  leftCircle.style.transformOrigin = `center ${lcy}px`;
+  rightCircle.style.transformOrigin = `center ${rcy}px`;
+  leftCircle.style.transition = 'transform 0.08s ease-in-out';
+  rightCircle.style.transition = 'transform 0.08s ease-in-out';
+  leftCircle.style.transform = 'scaleY(0.05)';
+  rightCircle.style.transform = 'scaleY(0.05)';
+
+  setTimeout(() => {
+    leftCircle.style.transform = '';
+    rightCircle.style.transform = '';
+    setTimeout(() => {
+      leftCircle.style.transition = '';
+      rightCircle.style.transition = '';
+    }, 100);
+  }, 120);
 
   scheduleBlink();
 }
