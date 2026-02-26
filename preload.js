@@ -29,7 +29,7 @@ contextBridge.exposeInMainWorld('joemac', {
 
   // Window physics
   getWindowPos: () => ipcRenderer.invoke('get-window-pos'),
-  setWindowPos: (x, y) => ipcRenderer.send('set-window-pos', x, y),
+  setWindowPos: (x, y) => ipcRenderer.send('set-window-pos', { x, y }),
   getScreenBounds: () => ipcRenderer.invoke('get-screen-bounds'),
   startDrag: () => ipcRenderer.send('start-manual-drag'),
 });

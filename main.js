@@ -459,8 +459,10 @@ ipcMain.handle('get-window-pos', () => {
   return { x: pos[0], y: pos[1] };
 });
 
-ipcMain.on('set-window-pos', (event, x, y) => {
-  if (mainWindow) mainWindow.setPosition(Math.round(x), Math.round(y), false);
+ipcMain.on('set-window-pos', (event, pos) => {
+  if (mainWindow && pos && typeof pos.x === 'number' && typeof pos.y === 'number') {
+    mainWindow.setPosition(Math.round(pos.x), Math.round(pos.y), false);
+  }
 });
 
 ipcMain.handle('get-screen-bounds', () => {
