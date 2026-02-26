@@ -1,6 +1,5 @@
 {
-  "text": "\n\nThe bridge is firing every assistant message immediately without waiting for the previous one to finish. Need a queue.",
-  "emotion": "idle",
-  "timestamp": 1772095303180,
-  "audioPath": "/Users/haythemhaddad/.openclaw/workspace/joemac-avatar/audio/bmo-1772095304350.mp3"
+  "text": "The issue is `NaN` getting through from the physics code. Let me add a guard:",
+  "emotion": "thinking",
+  "timestamp": 1772095405804
 }

@@ -589,7 +589,7 @@ ipcMain.handle('get-window-pos', () => {
 });
 
 ipcMain.on('set-window-pos', (event, pos) => {
-  if (mainWindow && pos && typeof pos.x === 'number' && typeof pos.y === 'number') {
+  if (mainWindow && pos && typeof pos.x === 'number' && typeof pos.y === 'number' && isFinite(pos.x) && isFinite(pos.y)) {
     mainWindow.setPosition(Math.round(pos.x), Math.round(pos.y), false);
   }
 });
