@@ -96,11 +96,78 @@ function extractText(content) {
   return '';
 }
 
+// ─── ElevenLabs TTS ───────────────────────────────────────────────────────────
+const ELEVENLABS_KEY = 'sk_b57bd5718cffa86860c10c9a04becf10e76b4a10a1dc7960';
+const BMO_VOICE_ID = 'kryUfGGmdlEvRm6LrMNh';
+const https = require('https');
+const audioDir = path.join(__dirname, 'audio');
+if (!fs.existsSync(audioDir)) fs.mkdirSync(audioDir);
+
+function generateTTS(text) {
+  return new Promise((resolve, reject) => {
+    // Truncate for TTS (save API credits)
+    const ttsText = text.length > 300 ? text.substring(0, 297) + '...' : text;
+    
+    const body = JSON.stringify({
+      text: ttsText,
+      model_id: 'eleven_multilingual_v2',
+      voice_settings: { stability: 0.6, similarity_boost: 0.85 }
+    });
+
+    const req = https.request({
+      hostname: 'api.elevenlabs.io',
+      path: `/v1/text-to-speech/${BMO_VOICE_ID}`,
+      method: 'POST',
+      headers: {
+        'xi-api-key': ELEVENLABS_KEY,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body)
+      }
+    }, (res) => {
+      if (res.statusCode !== 200) {
+        let errBody = '';
+        res.on('data', c => errBody += c);
+        res.on('end', () => {
+          console.error('TTS error:', res.statusCode, errBody.substring(0, 200));
+          resolve(null);
+        });
+        return;
+      }
+      const audioFile = path.join(audioDir, `bmo-${Date.now()}.mp3`);
+      const fileStream = fs.createWriteStream(audioFile);
+      res.pipe(fileStream);
+      fileStream.on('finish', () => {
+        fileStream.close();
+        // Clean up old audio files (keep last 5)
+        try {
+          const files = fs.readdirSync(audioDir).filter(f => f.endsWith('.mp3')).sort();
+          while (files.length > 5) {
+            fs.unlinkSync(path.join(audioDir, files.shift()));
+          }
+        } catch(e) {}
+        resolve(audioFile);
+      });
+      fileStream.on('error', () => resolve(null));
+    });
+    req.on('error', () => resolve(null));
+    req.write(body);
+    req.end();
+  });
+}
+
 // ─── Send message to BMO renderer ─────────────────────────────────────────────
-function sendToBmo(text, emotion = 'idle') {
+async function sendToBmo(text, emotion = 'idle') {
   if (!text || text.trim() === '' || text === 'NO_REPLY' || text === 'HEARTBEAT_OK') return;
   const displayText = text.length > 200 ? text.substring(0, 197) + '...' : text;
-  const msg = { text: displayText, emotion, timestamp: Date.now() };
+  const msg = { text: displayText, emotion, timestamp: Date.now(), audioPath: null };
+
+  // Generate TTS audio
+  try {
+    const audioFile = await generateTTS(displayText);
+    if (audioFile) msg.audioPath = audioFile;
+  } catch (e) {
+    console.error('TTS failed:', e.message);
+  }
 
   // Write to file for compatibility
   try {

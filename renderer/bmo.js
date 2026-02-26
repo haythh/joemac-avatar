@@ -486,8 +486,9 @@ function doThink(doneCallback) {
   }, 500);
 }
 
-function doSpeak(text, emotion, doneCallback) {
-  const duration = Math.max(1500, text.length * 50);
+let currentAudio = null;
+
+function doSpeak(text, emotion, doneCallback, audioPath) {
   setState('speaking');
   setScreenColor('idle');
   showBubble(text);
@@ -495,8 +496,9 @@ function doSpeak(text, emotion, doneCallback) {
 
   if (isSitting) standUp();
 
-  setTimeout(() => {
+  function finishSpeaking() {
     stopMouthCycle();
+    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
 
     if (emotion === 'happy') {
       doHappy(() => { returnToIdle(doneCallback); });
@@ -504,7 +506,28 @@ function doSpeak(text, emotion, doneCallback) {
       hideBubble();
       returnToIdle(doneCallback);
     }
-  }, duration);
+  }
+
+  if (audioPath) {
+    // Play TTS audio and sync duration
+    currentAudio = new Audio('file://' + audioPath);
+    currentAudio.volume = 0.8;
+    currentAudio.play().catch(() => {});
+    currentAudio.onended = () => { finishSpeaking(); };
+    // Fallback timeout in case audio fails
+    const fallbackDuration = Math.max(3000, text.length * 60);
+    setTimeout(() => {
+      if (currentAudio && !currentAudio.ended) {
+        // Audio still playing, let it finish
+      } else {
+        finishSpeaking();
+      }
+    }, fallbackDuration);
+  } else {
+    // No audio — use text-based duration
+    const duration = Math.max(1500, text.length * 50);
+    setTimeout(finishSpeaking, duration);
+  }
 }
 
 function doHappy(doneCallback) {
@@ -545,13 +568,14 @@ function handleMessage(msg) {
   if (isAnimating) return;
   isAnimating = true;
 
-  const text    = msg.text    || '';
-  const emotion = msg.emotion || 'idle';
+  const text      = msg.text      || '';
+  const emotion   = msg.emotion   || 'idle';
+  const audioPath = msg.audioPath || null;
 
   doThink(() => {
     doSpeak(text, emotion, () => {
       isAnimating = false;
-    });
+    }, audioPath);
   });
 }
 
