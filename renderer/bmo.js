@@ -661,10 +661,17 @@ bmoWrapper.addEventListener('mousedown', async (e) => {
   physics.lastDragPos = { x: pos.x, y: pos.y };
   physics.lastDragTime = performance.now();
   
-  // Squish on pickup
-  bmoWrapper.style.transition = 'transform 0.1s';
-  bmoWrapper.style.transform = 'scaleY(0.95) scaleX(1.02)';
-  setTimeout(() => { bmoWrapper.style.transition = ''; }, 100);
+  // Scared face + tilt on pickup
+  setMouth('surprise');
+  setScreenColor('excited');
+  bmoWrapper.style.transition = 'transform 0.15s';
+  bmoWrapper.style.transform = 'rotate(-5deg) scaleY(0.95)';
+  
+  // Flailing arms
+  leftArm.style.animation = 'arm-flail-left 0.3s ease-in-out infinite';
+  rightArm.style.animation = 'arm-flail-right 0.3s ease-in-out infinite';
+  
+  setTimeout(() => { bmoWrapper.style.transition = ''; }, 150);
 });
 
 window.addEventListener('mousemove', (e) => {
@@ -683,6 +690,11 @@ window.addEventListener('mousemove', (e) => {
   physics.lastDragPos = { x: nx, y: ny };
   physics.lastDragTime = now;
   
+  // Tilt based on horizontal movement  
+  const dx = nx - physics.lastDragPos.x;
+  const tilt = Math.max(-15, Math.min(15, dx * -0.8));
+  bmoWrapper.style.transform = `rotate(${tilt}deg) scaleY(0.95)`;
+  
   window.joemac.setWindowPos(nx, ny);
 });
 
@@ -690,8 +702,12 @@ window.addEventListener('mouseup', async () => {
   if (!physics.isDragging) return;
   physics.isDragging = false;
   
-  // Restore shape
+  // Restore face and shape
   bmoWrapper.style.transform = '';
+  leftArm.style.animation = '';
+  rightArm.style.animation = '';
+  setMouth('closed');
+  setScreenColor('idle');
   
   // Start falling with current velocity
   if (!physics.screenBounds) {
