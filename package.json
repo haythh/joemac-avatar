@@ -5,6 +5,8 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "bridge": "node bridge.js",
+    "all": "node bridge.js & electron . && kill %1",
     "dev": "electron . --dev"
   },
   "keywords": ["electron", "bmo", "avatar", "desktop", "companion"],
