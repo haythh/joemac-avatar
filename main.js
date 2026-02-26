@@ -104,9 +104,17 @@ function extractText(content) {
   return '';
 }
 
-// ─── ElevenLabs TTS ───────────────────────────────────────────────────────────
-const ELEVENLABS_KEY = 'sk_b57bd5718cffa86860c10c9a04becf10e76b4a10a1dc7960';
-const BMO_VOICE_ID = 'kryUfGGmdlEvRm6LrMNh';
+// ─── TTS Engine ───────────────────────────────────────────────────────────────
+// Config-based: user provides ElevenLabs key on first run (optional)
+// Falls back to macOS `say` command or silent mode
+function getElevenLabsKey() { return config.elevenLabsKey || null; }
+function getVoiceId() { return config.elevenLabsVoiceId || 'kryUfGGmdlEvRm6LrMNh'; }
+function getTtsMode() {
+  if (config.ttsDisabled) return 'silent';
+  if (getElevenLabsKey()) return 'elevenlabs';
+  if (process.platform === 'darwin') return 'say';
+  return 'silent';
+}
 const https = require('https');
 const audioDir = path.join(__dirname, 'audio');
 if (!fs.existsSync(audioDir)) fs.mkdirSync(audioDir);
@@ -126,10 +134,32 @@ const VOICE_PROFILES = {
   mischief:  { stability: 0.40, similarity_boost: 0.80, style: 0.35, speed: 1.05 },
 };
 
+// macOS `say` voice mapping per emotion
+const SAY_VOICES = {
+  idle: { voice: 'Samantha', rate: 180 },
+  happy: { voice: 'Samantha', rate: 210 },
+  excited: { voice: 'Samantha', rate: 240 },
+  thinking: { voice: 'Samantha', rate: 155 },
+  sad: { voice: 'Samantha', rate: 140 },
+  surprised: { voice: 'Samantha', rate: 230 },
+  love: { voice: 'Samantha', rate: 160 },
+  curious: { voice: 'Samantha', rate: 170 },
+  proud: { voice: 'Samantha', rate: 195 },
+  scared: { voice: 'Samantha', rate: 250 },
+  mischief: { voice: 'Samantha', rate: 200 },
+};
+
 function generateTTS(text, emotion = 'idle') {
-  return new Promise((resolve, reject) => {
+  const mode = getTtsMode();
+  
+  if (mode === 'elevenlabs') return generateElevenLabs(text, emotion);
+  if (mode === 'say') return generateMacSay(text, emotion);
+  return Promise.resolve(null); // silent
+}
+
+function generateElevenLabs(text, emotion) {
+  return new Promise((resolve) => {
     const ttsText = text.length > 300 ? text.substring(0, 297) + '...' : text;
-    
     const vp = VOICE_PROFILES[emotion] || VOICE_PROFILES.idle;
     const body = JSON.stringify({
       text: ttsText,
@@ -145,10 +175,10 @@ function generateTTS(text, emotion = 'idle') {
 
     const req = https.request({
       hostname: 'api.elevenlabs.io',
-      path: `/v1/text-to-speech/${BMO_VOICE_ID}`,
+      path: `/v1/text-to-speech/${getVoiceId()}`,
       method: 'POST',
       headers: {
-        'xi-api-key': ELEVENLABS_KEY,
+        'xi-api-key': getElevenLabsKey(),
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(body)
       }
@@ -167,12 +197,9 @@ function generateTTS(text, emotion = 'idle') {
       res.pipe(fileStream);
       fileStream.on('finish', () => {
         fileStream.close();
-        // Clean up old audio files (keep last 5)
         try {
-          const files = fs.readdirSync(audioDir).filter(f => f.endsWith('.mp3')).sort();
-          while (files.length > 5) {
-            fs.unlinkSync(path.join(audioDir, files.shift()));
-          }
+          const files = fs.readdirSync(audioDir).filter(f => f.endsWith('.mp3') || f.endsWith('.aiff')).sort();
+          while (files.length > 5) { fs.unlinkSync(path.join(audioDir, files.shift())); }
         } catch(e) {}
         resolve(audioFile);
       });
@@ -181,6 +208,24 @@ function generateTTS(text, emotion = 'idle') {
     req.on('error', () => resolve(null));
     req.write(body);
     req.end();
+  });
+}
+
+function generateMacSay(text, emotion) {
+  return new Promise((resolve) => {
+    const { exec: execCmd } = require('child_process');
+    const ttsText = text.length > 300 ? text.substring(0, 297) + '...' : text;
+    const sv = SAY_VOICES[emotion] || SAY_VOICES.idle;
+    const audioFile = path.join(audioDir, `bmo-${Date.now()}.aiff`);
+    const escaped = ttsText.replace(/"/g, '\\"');
+    execCmd(`say -v "${sv.voice}" -r ${sv.rate} -o "${audioFile}" "${escaped}"`, (err) => {
+      if (err) { console.error('say error:', err.message); resolve(null); return; }
+      try {
+        const files = fs.readdirSync(audioDir).filter(f => f.endsWith('.mp3') || f.endsWith('.aiff')).sort();
+        while (files.length > 5) { fs.unlinkSync(path.join(audioDir, files.shift())); }
+      } catch(e) {}
+      resolve(audioFile);
+    });
   });
 }
 
@@ -423,6 +468,38 @@ function buildTrayMenu() {
     },
     { type: 'separator' },
     {
+      label: `Voice: ${getTtsMode() === 'elevenlabs' ? 'ElevenLabs' : getTtsMode() === 'say' ? 'Mac Voice' : 'Silent'}`,
+      enabled: false,
+    },
+    {
+      label: 'Change Voice Settings...',
+      click: async () => {
+        const choice = await dialog.showMessageBox(mainWindow, {
+          type: 'question',
+          title: 'Voice Settings',
+          message: 'Choose voice mode:',
+          buttons: ['ElevenLabs (API key)', 'Mac voice (free)', 'Silent', 'Cancel'],
+          defaultId: 3,
+        });
+        if (choice.response === 0) {
+          const { inputValue } = await promptForInput('ElevenLabs API Key', 'Paste your API key:', 'elevenlabs.io → Profile → API Keys');
+          if (inputValue && inputValue.trim()) {
+            config.elevenLabsKey = inputValue.trim();
+            config.ttsDisabled = false;
+          }
+        } else if (choice.response === 1) {
+          delete config.elevenLabsKey;
+          config.ttsDisabled = false;
+        } else if (choice.response === 2) {
+          config.ttsDisabled = true;
+        } else { return; }
+        saveConfig(config);
+        tray.setContextMenu(buildTrayMenu());
+        sendToBmo(`Voice switched to ${getTtsMode()}!`, 'happy');
+      }
+    },
+    { type: 'separator' },
+    {
       label: 'Send Test Message',
       click: () => {
         sendToBmo("Hey! I'm BMO 👋 Everything's running great!", 'happy');
@@ -548,36 +625,119 @@ function startMessageFileWatcher() {
 }
 
 // ─── First-run experience ──────────────────────────────────────────────────────
-function handleFirstRun() {
+async function handleFirstRun() {
   if (!config.firstRun) return;
 
   config.firstRun = false;
   saveConfig(config);
 
-  // Wait for renderer to load before sending welcome
-  if (mainWindow) {
-    mainWindow.webContents.once('did-finish-load', () => {
-      setTimeout(() => {
-        if (!fs.existsSync(OPENCLAW_DIR)) {
-          // OpenClaw not detected
-          dialog.showMessageBox(mainWindow, {
-            type: 'warning',
-            title: 'OpenClaw Not Detected',
-            message: 'OpenClaw is not installed.',
-            detail: 'BMO Avatar works best with OpenClaw installed.\n\nVisit https://openclaw.ai to get started.',
-            buttons: ['Open openclaw.ai', 'Dismiss']
-          }).then(result => {
-            if (result.response === 0) {
-              shell.openExternal('https://openclaw.ai');
-            }
-          });
-        } else {
-          // OpenClaw detected — send welcome
-          sendToBmo("Hey! I'm connected to OpenClaw! 👋", 'happy');
-        }
-      }, 1500);
+  if (!mainWindow) return;
+
+  await new Promise(resolve => {
+    mainWindow.webContents.once('did-finish-load', () => setTimeout(resolve, 1500));
+  });
+
+  // Check OpenClaw
+  if (!fs.existsSync(OPENCLAW_DIR)) {
+    const result = await dialog.showMessageBox(mainWindow, {
+      type: 'warning',
+      title: 'OpenClaw Not Detected',
+      message: 'OpenClaw is not installed.',
+      detail: 'BMO Avatar works best with OpenClaw installed.\n\nVisit https://openclaw.ai to get started.',
+      buttons: ['Open openclaw.ai', 'Dismiss']
     });
+    if (result.response === 0) shell.openExternal('https://openclaw.ai');
   }
+
+  // Ask about ElevenLabs voice
+  const voiceChoice = await dialog.showMessageBox(mainWindow, {
+    type: 'question',
+    title: 'Voice Setup',
+    message: 'How should BMO speak?',
+    detail: 'ElevenLabs gives BMO a high-quality custom voice (requires API key, ~$5/mo).\n\nWithout it, BMO uses your Mac\'s built-in voice (free but robotic).',
+    buttons: ['Use ElevenLabs (paste API key)', 'Use Mac voice (free)', 'No voice (silent)'],
+    defaultId: 1,
+  });
+
+  if (voiceChoice.response === 0) {
+    // Prompt for API key
+    const { response, inputValue } = await promptForInput(
+      'ElevenLabs API Key',
+      'Paste your ElevenLabs API key:',
+      'Get one at elevenlabs.io → Profile → API Keys'
+    );
+    if (inputValue && inputValue.trim()) {
+      config.elevenLabsKey = inputValue.trim();
+      // Ask for voice ID (optional)
+      const vidResult = await dialog.showMessageBox(mainWindow, {
+        type: 'question',
+        title: 'Voice ID',
+        message: 'Use default BMO voice or custom?',
+        detail: 'The default voice is a cloned BMO from Adventure Time.\n\nYou can also use any voice ID from your ElevenLabs account.',
+        buttons: ['Default BMO voice', 'Enter custom voice ID'],
+      });
+      if (vidResult.response === 1) {
+        const { inputValue: vid } = await promptForInput(
+          'Voice ID',
+          'Paste your ElevenLabs Voice ID:',
+          'Find it in ElevenLabs → Voices → Voice ID'
+        );
+        if (vid && vid.trim()) config.elevenLabsVoiceId = vid.trim();
+      }
+    }
+  } else if (voiceChoice.response === 2) {
+    config.ttsDisabled = true;
+  }
+
+  saveConfig(config);
+  console.log(`🔊 TTS mode: ${getTtsMode()}`);
+  sendToBmo("Hey! I'm BMO! Everything's set up and ready to go! 👋", 'happy');
+}
+
+// Simple input prompt using a child BrowserWindow
+function promptForInput(title, label, detail) {
+  return new Promise((resolve) => {
+    const promptWin = new BrowserWindow({
+      width: 480, height: 220,
+      parent: mainWindow, modal: true,
+      frame: true, resizable: false,
+      webPreferences: { nodeIntegration: false, contextIsolation: true }
+    });
+    const html = `<!DOCTYPE html><html><head><style>
+      body { font-family: -apple-system, system-ui, sans-serif; padding: 20px; background: #1a1a2e; color: #eee; }
+      h3 { margin: 0 0 4px; font-size: 15px; } p { font-size: 12px; color: #999; margin: 0 0 12px; }
+      input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #444; background: #2a2a3e; color: #fff; font-size: 14px; font-family: monospace; }
+      .btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+      button { padding: 8px 18px; border-radius: 8px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; }
+      .ok { background: #f97316; color: #fff; } .cancel { background: #333; color: #aaa; }
+    </style></head><body>
+      <h3>${label}</h3><p>${detail}</p>
+      <input id="val" type="text" placeholder="sk_..." autofocus />
+      <div class="btns">
+        <button class="cancel" onclick="done('')">Skip</button>
+        <button class="ok" onclick="done(document.getElementById('val').value)">Save</button>
+      </div>
+      <script>
+        document.getElementById('val').addEventListener('keydown', e => { if (e.key === 'Enter') done(document.getElementById('val').value); });
+        function done(v) { document.title = 'RESULT:' + v; }
+      </script>
+    </body></html>`;
+    promptWin.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
+    promptWin.setTitle(title);
+    
+    let resolved = false;
+    promptWin.on('page-title-updated', (e, newTitle) => {
+      if (newTitle.startsWith('RESULT:') && !resolved) {
+        resolved = true;
+        const inputValue = newTitle.slice(7);
+        promptWin.close();
+        resolve({ response: inputValue ? 0 : 1, inputValue });
+      }
+    });
+    promptWin.on('closed', () => {
+      if (!resolved) resolve({ response: 1, inputValue: '' });
+    });
+  });
 }
 
 // ─── IPC ───────────────────────────────────────────────────────────────────────
