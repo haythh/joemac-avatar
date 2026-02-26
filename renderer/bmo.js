@@ -32,6 +32,10 @@ let blinkTimeout       = null;
 let mouthCycleInterval = null;
 let isAnimating        = false;
 let lastTimestamp      = 0;
+let lastActivityTime   = Date.now();
+let isSleeping         = false;
+let sleepCheckInterval = null;
+const SLEEP_AFTER_MS   = 5 * 60 * 1000; // 5 minutes
 
 // ─── Utility: set state classes ───────────────────
 function setState(state) {
@@ -161,6 +165,91 @@ function returnToIdle(callback) {
   if (callback) callback();
 }
 
+// ─── Sleep System ────────────────────────────────
+function goToSleep() {
+  if (isSleeping) return;
+  isSleeping = true;
+  clearTimeout(fidgetTimeout);
+  clearTimeout(blinkTimeout);
+  
+  setState('idle');
+  
+  // Sleepy eyes: horizontal lines (—  —)
+  const leftEyeEl = leftEye.querySelector('circle') || leftEye.firstElementChild;
+  const rightEyeEl = rightEye.querySelector('circle') || rightEye.firstElementChild;
+  if (leftEyeEl) leftEyeEl.style.transform = 'scaleY(0.15)';
+  if (rightEyeEl) rightEyeEl.style.transform = 'scaleY(0.15)';
+  
+  // Flat mouth
+  setMouth('think');
+  
+  // Slow breathing
+  bmoWrapper.style.animation = 'bmo-sleep 6s ease-in-out infinite';
+  
+  // Add floating Zzz
+  startZzz();
+  console.log('😴 BMO fell asleep');
+}
+
+function wakeUp() {
+  if (!isSleeping) return;
+  isSleeping = false;
+  
+  // Restore eyes
+  const leftEyeEl = leftEye.querySelector('circle') || leftEye.firstElementChild;
+  const rightEyeEl = rightEye.querySelector('circle') || rightEye.firstElementChild;
+  if (leftEyeEl) leftEyeEl.style.transform = '';
+  if (rightEyeEl) rightEyeEl.style.transform = '';
+  
+  // Wake up animation
+  bmoWrapper.style.animation = '';
+  setMouth('smile');
+  stopZzz();
+  
+  setTimeout(() => {
+    setMouth('closed');
+    bmoWrapper.style.animation = 'bmo-float 4s ease-in-out infinite';
+    scheduleBlink();
+    scheduleIdleFidget();
+  }, 800);
+  
+  console.log('☀️ BMO woke up!');
+}
+
+function resetActivityTimer() {
+  lastActivityTime = Date.now();
+  if (isSleeping) wakeUp();
+}
+
+// Zzz floating text
+let zzzInterval = null;
+function startZzz() {
+  stopZzz();
+  const bubble = document.getElementById('speech-bubble');
+  let zCount = 1;
+  zzzInterval = setInterval(() => {
+    bubble.textContent = 'z'.repeat(zCount);
+    bubble.classList.add('visible');
+    zCount = (zCount % 3) + 1;
+  }, 2000);
+}
+
+function stopZzz() {
+  clearInterval(zzzInterval);
+  zzzInterval = null;
+  hideBubble();
+}
+
+// Check for sleep
+function startSleepCheck() {
+  clearInterval(sleepCheckInterval);
+  sleepCheckInterval = setInterval(() => {
+    if (!isSleeping && !isAnimating && (Date.now() - lastActivityTime > SLEEP_AFTER_MS)) {
+      goToSleep();
+    }
+  }, 10000); // check every 10s
+}
+
 // ─── Idle Fidgets (random micro-animations) ──────
 let fidgetTimeout = null;
 
@@ -222,7 +311,7 @@ function scheduleIdleFidget() {
   clearTimeout(fidgetTimeout);
   const delay = 4000 + Math.random() * 8000; // 4–12 seconds
   fidgetTimeout = setTimeout(() => {
-    if (currentState !== 'idle' || isAnimating) {
+    if (currentState !== 'idle' || isAnimating || isSleeping) {
       scheduleIdleFidget();
       return;
     }
@@ -239,6 +328,9 @@ function handleMessage(msg) {
   // Deduplicate by timestamp
   if (msg.timestamp && msg.timestamp === lastTimestamp) return;
   lastTimestamp = msg.timestamp || Date.now();
+
+  // Wake up if sleeping
+  resetActivityTimer();
 
   // Don't stack animations
   if (isAnimating) return;
@@ -261,6 +353,7 @@ function startup() {
   setMouth('closed');
   scheduleBlink();
   scheduleIdleFidget();
+  startSleepCheck();
 
   // Wave on startup after 2s
   setTimeout(() => {
