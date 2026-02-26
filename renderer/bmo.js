@@ -37,6 +37,14 @@ const MOUTH_SHAPES = {
   surprise:'M 190 190 Q 200 210 210 190 Q 215 185 210 180 Q 200 175 190 180 Q 185 185 190 190',
 };
 
+// ─── Teeth Paths (white strip at top of open mouth) ──
+const MOUTH_TEETH = {
+  open:  'M 182 192 Q 200 200 218 192 L 218 196 Q 200 204 182 196 Z',
+  wide:  'M 177 190 Q 200 200 223 190 L 223 195 Q 200 205 177 195 Z',
+  happy: 'M 180 192 Q 200 202 220 192 L 220 197 Q 200 207 180 197 Z',
+  grin:  'M 180 190 Q 200 200 220 190 L 220 195 Q 200 205 180 195 Z',
+};
+
 // ─── Screen Colors ────────────────────────────────
 const SCREEN_COLORS = {
   idle:     '#D1F2DC',  // default mint green
@@ -68,18 +76,33 @@ function setState(state) {
 }
 
 function setMouth(shape) {
-  if (MOUTH_SHAPES[shape]) {
-    const isFilled = ['open', 'wide', 'happy', 'grin', 'o', 'surprise'].includes(shape);
-    const showTeeth = ['open', 'wide', 'happy', 'grin'].includes(shape);
-    
-    mouthPath.setAttribute('d', MOUTH_SHAPES[shape]);
-    mouthPath.setAttribute('fill', isFilled ? '#1D5C4A' : 'none');
-    
-    // Show/hide teeth and tongue for open mouth states
-    const teeth = document.getElementById('mouth-teeth');
-    const tongue = document.getElementById('mouth-tongue');
-    if (teeth) teeth.style.display = showTeeth ? '' : 'none';
-    if (tongue) tongue.style.display = isFilled ? '' : 'none';
+  if (!MOUTH_SHAPES[shape]) return;
+  
+  const isFilled = ['open', 'wide', 'happy', 'grin', 'o', 'surprise'].includes(shape);
+  const showTeeth = ['open', 'wide', 'happy', 'grin'].includes(shape);
+  const pathD = MOUTH_SHAPES[shape];
+  
+  const mouthFill = document.getElementById('mouth-fill');
+  const mouthTeeth = document.getElementById('mouth-teeth');
+  
+  // Outline follows shape
+  mouthPath.setAttribute('d', pathD);
+  
+  // Fill follows same shape (dark green interior)
+  if (mouthFill) {
+    mouthFill.setAttribute('d', pathD);
+    mouthFill.setAttribute('fill', isFilled ? '#1D5C4A' : 'none');
+  }
+  
+  // Teeth: a thin strip at the top of the mouth opening
+  if (mouthTeeth) {
+    if (showTeeth) {
+      // Generate teeth path that follows top edge of mouth
+      mouthTeeth.setAttribute('d', MOUTH_TEETH[shape] || '');
+      mouthTeeth.style.display = '';
+    } else {
+      mouthTeeth.style.display = 'none';
+    }
   }
 }
 

@@ -305,11 +305,12 @@
 
         <!-- ── MOUTH ── -->
         <g id="mouth">
+          <!-- Fill layer (dark green interior, behind stroke) -->
+          <path id="mouth-fill" d="M 185 195 Q 200 210 215 195" fill="none" stroke="none" />
+          <!-- Teeth strip (white, sits at top of mouth opening) -->
+          <path id="mouth-teeth" d="" fill="#FFFFFF" stroke="none" style="display:none" />
+          <!-- Outline -->
           <path id="mouth-path" d="M 185 195 Q 200 210 215 195" fill="none" stroke="#1D2D2A" stroke-width="5" stroke-linecap="round" />
-          <!-- Teeth (shown during open/happy mouth via JS) -->
-          <rect id="mouth-teeth" x="186" y="193" width="28" height="6" rx="2" fill="#FFFFFF" style="display:none" />
-          <!-- Tongue/inner (dark green, shown during open mouth) -->
-          <ellipse id="mouth-tongue" cx="200" cy="205" rx="12" ry="5" fill="#2B8A6E" style="display:none" />
         </g>
       </g>
 
