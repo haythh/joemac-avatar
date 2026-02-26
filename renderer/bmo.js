@@ -628,6 +628,145 @@ mutationObs.observe(bmoWrapper, { attributes: true });
 // ─── Boot ─────────────────────────────────────────
 startup();
 
+// ─── Window Physics (drag + gravity drop) ────────
+const physics = {
+  isDragging: false,
+  velocity: { x: 0, y: 0 },
+  gravity: 1800,        // pixels/sec²
+  bounce: 0.45,         // energy retained on bounce
+  friction: 0.95,       // air resistance
+  dragStart: { mx: 0, my: 0, wx: 0, wy: 0 },
+  lastDragPos: { x: 0, y: 0 },
+  lastDragTime: 0,
+  falling: false,
+  screenBounds: null,
+  windowSize: { w: 320, h: 540 },
+};
+
+// Get screen bounds once
+if (window.joemac && window.joemac.getScreenBounds) {
+  window.joemac.getScreenBounds().then(b => { physics.screenBounds = b; });
+}
+
+// Manual drag handling
+bmoWrapper.addEventListener('mousedown', async (e) => {
+  if (!window.joemac || !window.joemac.getWindowPos) return;
+  
+  physics.isDragging = true;
+  physics.falling = false;
+  physics.velocity = { x: 0, y: 0 };
+  
+  const pos = await window.joemac.getWindowPos();
+  physics.dragStart = { mx: e.screenX, my: e.screenY, wx: pos.x, wy: pos.y };
+  physics.lastDragPos = { x: pos.x, y: pos.y };
+  physics.lastDragTime = performance.now();
+  
+  // Squish on pickup
+  bmoWrapper.style.transition = 'transform 0.1s';
+  bmoWrapper.style.transform = 'scaleY(0.95) scaleX(1.02)';
+  setTimeout(() => { bmoWrapper.style.transition = ''; }, 100);
+});
+
+window.addEventListener('mousemove', (e) => {
+  if (!physics.isDragging) return;
+  
+  const nx = physics.dragStart.wx + (e.screenX - physics.dragStart.mx);
+  const ny = physics.dragStart.wy + (e.screenY - physics.dragStart.my);
+  
+  // Track velocity from drag movement
+  const now = performance.now();
+  const dt = (now - physics.lastDragTime) / 1000;
+  if (dt > 0) {
+    physics.velocity.x = (nx - physics.lastDragPos.x) / dt;
+    physics.velocity.y = (ny - physics.lastDragPos.y) / dt;
+  }
+  physics.lastDragPos = { x: nx, y: ny };
+  physics.lastDragTime = now;
+  
+  window.joemac.setWindowPos(nx, ny);
+});
+
+window.addEventListener('mouseup', async () => {
+  if (!physics.isDragging) return;
+  physics.isDragging = false;
+  
+  // Restore shape
+  bmoWrapper.style.transform = '';
+  
+  // Start falling with current velocity
+  if (!physics.screenBounds) {
+    physics.screenBounds = await window.joemac.getScreenBounds();
+  }
+  
+  const pos = await window.joemac.getWindowPos();
+  physics.falling = true;
+  
+  let px = pos.x;
+  let py = pos.y;
+  let vx = physics.velocity.x * 0.5; // dampen throw
+  let vy = physics.velocity.y * 0.5;
+  let lastTime = performance.now();
+  let bounceCount = 0;
+  
+  const floorY = physics.screenBounds.height - physics.windowSize.h + 80; // account for BMO position in window
+  
+  function tick(now) {
+    if (physics.isDragging || !physics.falling) return;
+    
+    const dt = Math.min((now - lastTime) / 1000, 0.05); // cap dt
+    lastTime = now;
+    
+    // Apply gravity
+    vy += physics.gravity * dt;
+    
+    // Apply air friction
+    vx *= physics.friction;
+    
+    // Update position
+    px += vx * dt;
+    py += vy * dt;
+    
+    // Floor collision
+    if (py >= floorY) {
+      py = floorY;
+      vy = -vy * physics.bounce;
+      vx *= 0.8;
+      bounceCount++;
+      
+      // Squish on landing
+      bmoWrapper.style.transition = 'transform 0.08s';
+      bmoWrapper.style.transform = 'scaleY(0.9) scaleX(1.05)';
+      setTimeout(() => {
+        bmoWrapper.style.transform = 'scaleY(1.02) scaleX(0.99)';
+        setTimeout(() => {
+          bmoWrapper.style.transform = '';
+          bmoWrapper.style.transition = '';
+        }, 80);
+      }, 80);
+      
+      // Stop if barely bouncing
+      if (Math.abs(vy) < 30 || bounceCount > 5) {
+        py = floorY;
+        physics.falling = false;
+        window.joemac.setWindowPos(Math.round(px), Math.round(py));
+        return;
+      }
+    }
+    
+    // Wall collisions
+    if (px < -50) { px = -50; vx = -vx * physics.bounce; }
+    if (px > physics.screenBounds.width - 100) { 
+      px = physics.screenBounds.width - 100; 
+      vx = -vx * physics.bounce; 
+    }
+    
+    window.joemac.setWindowPos(Math.round(px), Math.round(py));
+    requestAnimationFrame(tick);
+  }
+  
+  requestAnimationFrame(tick);
+});
+
 // ─── Debug ────────────────────────────────────────
 window._bmo = {
   wave:     () => doWave(),

@@ -452,6 +452,22 @@ function handleFirstRun() {
 ipcMain.on('start-drag', () => {});
 ipcMain.handle('get-messages-path', () => MESSAGES_FILE);
 
+// ─── Window Physics IPC ──────────────────────────
+ipcMain.handle('get-window-pos', () => {
+  if (!mainWindow) return { x: 0, y: 0 };
+  const pos = mainWindow.getPosition();
+  return { x: pos[0], y: pos[1] };
+});
+
+ipcMain.on('set-window-pos', (event, x, y) => {
+  if (mainWindow) mainWindow.setPosition(Math.round(x), Math.round(y), false);
+});
+
+ipcMain.handle('get-screen-bounds', () => {
+  const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+  return { width, height };
+});
+
 // ─── App lifecycle ─────────────────────────────────────────────────────────────
 app.whenReady().then(() => {
   createWindow();

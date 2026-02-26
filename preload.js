@@ -25,5 +25,11 @@ contextBridge.exposeInMainWorld('joemac', {
   getMessagesPath: () => ipcRenderer.invoke('get-messages-path'),
 
   // Platform info
-  platform: process.platform
+  platform: process.platform,
+
+  // Window physics
+  getWindowPos: () => ipcRenderer.invoke('get-window-pos'),
+  setWindowPos: (x, y) => ipcRenderer.send('set-window-pos', x, y),
+  getScreenBounds: () => ipcRenderer.invoke('get-screen-bounds'),
+  startDrag: () => ipcRenderer.send('start-manual-drag'),
 });
