@@ -86,9 +86,9 @@ function createWindow() {
 
   mainWindow = new BrowserWindow({
     width: 320,
-    height: 480,
+    height: 540,
     x: screenW - 360,
-    y: screenH - 530,
+    y: screenH - 580,
     frame: false,
     transparent: true,
     backgroundColor: '#00000000',
