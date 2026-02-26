@@ -103,45 +103,39 @@
     animation: shadow-pulse 4s ease-in-out infinite;
   }
 
-  /* ─── IDLE arm sway ─── */
+  /* ─── IDLE arm sway (translate only — rotate breaks SVG pivot) ─── */
   @keyframes idle-sway-left {
-    0%, 100% { transform: rotate(0deg); }
-    30%      { transform: rotate(3deg); }
-    70%      { transform: rotate(-2deg); }
+    0%, 100% { transform: translateX(0px) translateY(0px); }
+    30%      { transform: translateX(-2px) translateY(-1px); }
+    70%      { transform: translateX(1px) translateY(1px); }
   }
   @keyframes idle-sway-right {
-    0%, 100% { transform: rotate(0deg); }
-    40%      { transform: rotate(-3deg); }
-    80%      { transform: rotate(2deg); }
+    0%, 100% { transform: translateX(0px) translateY(0px); }
+    40%      { transform: translateX(2px) translateY(-1px); }
+    80%      { transform: translateX(-1px) translateY(1px); }
   }
   #left-arm {
     animation: idle-sway-left 5s ease-in-out infinite;
-    transform-origin: 105px 220px;
   }
   #right-arm {
     animation: idle-sway-right 5.5s ease-in-out infinite;
-    transform-origin: 295px 220px;
   }
 
-  /* ─── WAVE (left arm — the one that goes up) ─── */
+  /* ─── WAVE ─── */
   @keyframes arm-wave {
-    0%   { transform: rotate(0deg); }
-    15%  { transform: rotate(30deg); }
-    30%  { transform: rotate(5deg); }
-    45%  { transform: rotate(35deg); }
-    60%  { transform: rotate(10deg); }
-    75%  { transform: rotate(30deg); }
-    100% { transform: rotate(0deg); }
+    0%   { transform: translate(0, 0); }
+    15%  { transform: translate(10px, -30px); }
+    30%  { transform: translate(5px, -10px); }
+    45%  { transform: translate(12px, -35px); }
+    60%  { transform: translate(6px, -15px); }
+    75%  { transform: translate(10px, -30px); }
+    100% { transform: translate(0, 0); }
   }
   #left-arm.wave {
     animation: arm-wave 0.6s ease-in-out 3;
-    transform-origin: 105px 220px;
   }
-
-  /* ─── WAVE (right arm) ─── */
   #right-arm.wave {
     animation: arm-wave 0.6s ease-in-out 3;
-    transform-origin: 295px 240px;
   }
 
   /* ─── THINKING ─── */
@@ -153,11 +147,11 @@
 
   @keyframes arm-think {
     0%, 100% { transform: rotate(0deg); }
-    50%      { transform: rotate(25deg); }
+    50%      { transform: translate(15px, -20px); }
   }
   #left-arm.thinking {
     animation: arm-think 1.5s ease-in-out infinite;
-    transform-origin: 105px 220px;
+    
   }
 
   @keyframes eye-look-side {
@@ -178,22 +172,22 @@
   #bmo-wrapper.speaking { animation: bmo-speak-bob 0.35s ease-in-out infinite; }
 
   @keyframes arm-gesture-left {
-    0%, 100% { transform: rotate(0deg); }
-    30%      { transform: rotate(15deg); }
-    60%      { transform: rotate(-8deg); }
+    0%, 100% { transform: translate(0, 0); }
+    30%      { transform: translate(-8px, -12px); }
+    60%      { transform: translate(4px, 5px); }
   }
   @keyframes arm-gesture-right {
-    0%, 100% { transform: rotate(0deg); }
-    30%      { transform: rotate(-10deg); }
-    60%      { transform: rotate(5deg); }
+    0%, 100% { transform: translate(0, 0); }
+    30%      { transform: translate(8px, -10px); }
+    60%      { transform: translate(-3px, 4px); }
   }
   #bmo-wrapper.speaking #left-arm {
     animation: arm-gesture-left 0.6s ease-in-out infinite;
-    transform-origin: 105px 220px;
+    
   }
   #bmo-wrapper.speaking #right-arm {
     animation: arm-gesture-right 0.6s ease-in-out 0.1s infinite;
-    transform-origin: 295px 240px;
+    
   }
 
   @keyframes screen-glow {
@@ -212,22 +206,22 @@
   #bmo-wrapper.happy { animation: bmo-bounce 0.6s ease-in-out 2; }
 
   @keyframes arms-happy-left {
-    0%, 100% { transform: rotate(0deg); }
-    40%      { transform: rotate(40deg); }
-    70%      { transform: rotate(30deg); }
+    0%, 100% { transform: translate(0, 0); }
+    40%      { transform: translate(-15px, -25px); }
+    70%      { transform: translate(-10px, -20px); }
   }
   @keyframes arms-happy-right {
-    0%, 100% { transform: rotate(0deg); }
-    40%      { transform: rotate(-30deg); }
-    70%      { transform: rotate(-20deg); }
+    0%, 100% { transform: translate(0, 0); }
+    40%      { transform: translate(15px, -25px); }
+    70%      { transform: translate(10px, -20px); }
   }
   #bmo-wrapper.happy #left-arm {
     animation: arms-happy-left 0.6s ease-in-out 2;
-    transform-origin: 105px 220px;
+    
   }
   #bmo-wrapper.happy #right-arm {
     animation: arms-happy-right 0.6s ease-in-out 2 0.05s;
-    transform-origin: 295px 240px;
+    
   }
 
   /* ─── SLEEP ─── */
