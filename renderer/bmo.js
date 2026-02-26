@@ -1189,6 +1189,25 @@ const mutationObs = new MutationObserver((mutations) => {
 });
 mutationObs.observe(bmoWrapper, { attributes: true });
 
+// ─── Click-through: only catch clicks on BMO/bubble ──
+document.addEventListener('mouseenter', () => {
+  // Forward events — check what's under cursor
+});
+
+// When mouse is over BMO or speech bubble, disable click-through
+bmoWrapper.addEventListener('mouseenter', () => {
+  if (window.joemac && window.joemac.setIgnoreMouse) window.joemac.setIgnoreMouse(false);
+});
+bmoWrapper.addEventListener('mouseleave', () => {
+  if (window.joemac && window.joemac.setIgnoreMouse) window.joemac.setIgnoreMouse(true);
+});
+speechBubble.addEventListener('mouseenter', () => {
+  if (window.joemac && window.joemac.setIgnoreMouse) window.joemac.setIgnoreMouse(false);
+});
+speechBubble.addEventListener('mouseleave', () => {
+  if (window.joemac && window.joemac.setIgnoreMouse) window.joemac.setIgnoreMouse(true);
+});
+
 // ─── Boot ─────────────────────────────────────────
 startup();
 

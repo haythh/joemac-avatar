@@ -501,6 +501,9 @@ function createWindow() {
 
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 
+  // Click-through: ignore mouse by default, forward events so renderer can detect hover
+  mainWindow.setIgnoreMouseEvents(true, { forward: true });
+
   // Uncomment for debugging:
   // mainWindow.webContents.openDevTools({ mode: 'detach' });
 
@@ -591,6 +594,13 @@ ipcMain.handle('get-window-pos', () => {
 ipcMain.on('set-window-pos', (event, pos) => {
   if (mainWindow && pos && typeof pos.x === 'number' && typeof pos.y === 'number' && isFinite(pos.x) && isFinite(pos.y)) {
     mainWindow.setPosition(Math.round(pos.x), Math.round(pos.y), false);
+  }
+});
+
+// Click-through toggle from renderer
+ipcMain.on('set-ignore-mouse', (event, ignore) => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.setIgnoreMouseEvents(ignore, { forward: true });
   }
 });
 

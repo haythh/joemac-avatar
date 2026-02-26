@@ -1,5 +1,7 @@
 {
-  "text": "The issue is `NaN` getting through from the physics code. Let me add a guard:",
-  "emotion": "thinking",
-  "timestamp": 1772095405804
+  "text": "Now add mouse enter/leave detection on BMO and the speech bubble in the renderer:",
+  "emotion": "idle",
+  "timestamp": 1772096671685,
+  "audioPath": "/Users/haythemhaddad/.openclaw/workspace/joemac-avatar/audio/bmo-1772096672610.mp3",
+  "audioDuration": null
 }

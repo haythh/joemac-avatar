@@ -43,4 +43,5 @@ contextBridge.exposeInMainWorld('joemac', {
   setWindowPos: (x, y) => ipcRenderer.send('set-window-pos', { x, y }),
   getScreenBounds: () => ipcRenderer.invoke('get-screen-bounds'),
   startDrag: () => ipcRenderer.send('start-manual-drag'),
+  setIgnoreMouse: (ignore) => ipcRenderer.send('set-ignore-mouse', ignore),
 });
