@@ -79,9 +79,17 @@ function findActiveSession() {
 // ─── Emotion & text helpers ───────────────────────────────────────────────────
 function detectEmotion(text) {
   const lower = text.toLowerCase();
-  if (/🔥|🚀|nice|awesome|done|fixed|pushed|deployed|live|let's go/i.test(lower)) return 'happy';
-  if (/hmm|thinking|let me|checking|looking/i.test(lower)) return 'thinking';
-  if (/sorry|error|fail|broke|bug/i.test(lower)) return 'sad';
+  // Strong signals first — order matters
+  if (/(!{3,}|🎉|🎊|holy shit|insane|incredible|amazing|mind.?blow|🤯)/i.test(lower)) return 'excited';
+  if (/❤️|💕|love|adore|heart/i.test(lower)) return 'love';
+  if (/😂|lol|lmao|haha|😏|sneaky|trick|mischie/i.test(lower)) return 'mischief';
+  if (/\?{2,}|hmm|wonder|curious|interesting|what if/i.test(lower)) return 'curious';
+  if (/whoa|wow|😱|😮|wait what|unexpected|no way/i.test(lower)) return 'surprised';
+  if (/⚠️|careful|warning|watch out|oh no|uh oh/i.test(lower)) return 'scared';
+  if (/well done|proud|nailed|killed it|congrat|nice work|ship.?it/i.test(lower)) return 'proud';
+  if (/🔥|🚀|nice|awesome|done|fixed|pushed|deployed|live|let's go|cool|great|good/i.test(lower)) return 'happy';
+  if (/thinking|let me|checking|looking|figuring|scanning/i.test(lower)) return 'thinking';
+  if (/sorry|error|fail|broke|bug|unfortunately|bad news|😢/i.test(lower)) return 'sad';
   return 'idle';
 }
 

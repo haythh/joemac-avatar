@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════
-   JoeMac Avatar — BMO Animation Engine v2
-   Now with: squinty eyes, screen moods, sparkles,
-   click reactions, sitting, and more personality
+   JoeMac Avatar — BMO Animation Engine v3
+   EMOTIVE EDITION: Full personality, reactive emotions,
+   expressive eyes, body language, dynamic speaking
 ═══════════════════════════════════════════════════ */
 
 // ─── Element References ───────────────────────────
@@ -30,29 +30,170 @@ const MOUTH_SHAPES = {
   o:       'M 192 190 Q 200 205 208 190 Q 215 182 208 178 Q 200 174 192 178 Q 185 182 192 190',
   wide:    'M 175 190 Q 200 220 225 190 Z',
   smile:   'M 180 195 Q 200 215 220 195',
-  happy:   'M 178 192 Q 200 218 222 192 Q 200 222 178 192',  // open grin
-  grin:    'M 178 190 Q 200 215 222 190 L 222 195 Q 200 188 178 195 Z',  // grin with teeth
+  happy:   'M 178 192 Q 200 218 222 192 Q 200 222 178 192',
+  grin:    'M 178 190 Q 200 215 222 190 L 222 195 Q 200 188 178 195 Z',
   think:   'M 188 198 L 212 198',
   sad:     'M 185 205 Q 200 195 215 205',
   surprise:'M 190 190 Q 200 210 210 190 Q 215 185 210 180 Q 200 175 190 180 Q 185 185 190 190',
+  smirk:   'M 183 197 Q 195 207 210 200 Q 218 195 220 192',
+  worried: 'M 182 203 Q 200 193 218 203',
+  tiny:    'M 193 197 Q 200 202 207 197',
+  pout:    'M 190 200 Q 200 195 210 200 Q 205 206 195 206 Z',
+  bigSmile:'M 175 192 Q 200 222 225 192',
 };
 
 // ─── Teeth Paths (white strip at top of open mouth) ──
 const MOUTH_TEETH = {
-  open:  'M 182 192 Q 200 200 218 192 L 218 196 Q 200 204 182 196 Z',
-  wide:  'M 177 190 Q 200 200 223 190 L 223 195 Q 200 205 177 195 Z',
-  happy: 'M 180 192 Q 200 202 220 192 L 220 197 Q 200 207 180 197 Z',
-  grin:  'M 180 190 Q 200 200 220 190 L 220 195 Q 200 205 180 195 Z',
+  open:     'M 182 192 Q 200 200 218 192 L 218 196 Q 200 204 182 196 Z',
+  wide:     'M 177 190 Q 200 200 223 190 L 223 195 Q 200 205 177 195 Z',
+  happy:    'M 180 192 Q 200 202 220 192 L 220 197 Q 200 207 180 197 Z',
+  grin:     'M 180 190 Q 200 200 220 190 L 220 195 Q 200 205 180 195 Z',
+  bigSmile: 'M 177 192 Q 200 202 223 192 L 223 197 Q 200 207 177 197 Z',
 };
 
 // ─── Screen Colors ────────────────────────────────
 const SCREEN_COLORS = {
-  idle:     '#D1F2DC',  // default mint green
-  happy:    '#C8F7C5',  // brighter green
-  thinking: '#C5D8F7',  // soft blue
-  excited:  '#F7D5E0',  // soft pink
-  sad:      '#D0D5E0',  // muted grey-blue
-  sleep:    '#B8C8D0',  // dim grey
+  idle:     '#D1F2DC',
+  happy:    '#C8F7C5',
+  thinking: '#C5D8F7',
+  excited:  '#F7D5E0',
+  sad:      '#D0D5E0',
+  sleep:    '#B8C8D0',
+  love:     '#F7C5D8',
+  curious:  '#E0D5F7',
+  proud:    '#F7E8C5',
+  scared:   '#F7E0C5',
+  mischief: '#C5F7E8',
+};
+
+// ─── Emotion Profiles ─────────────────────────────
+// Each emotion defines how BMO reacts during speaking
+const EMOTION_PROFILES = {
+  idle: {
+    screenColor: 'idle',
+    mouthCycleSpeed: 160,
+    speakMouths: ['closed', 'open', 'o', 'open', 'wide', 'closed', 'o', 'open'],
+    bodyClass: '',
+    eyeStyle: null,
+    armIntensity: 1,
+    entryAnim: null,
+  },
+  happy: {
+    screenColor: 'happy',
+    mouthCycleSpeed: 120,
+    speakMouths: ['smile', 'open', 'happy', 'open', 'wide', 'smile', 'happy', 'open'],
+    bodyClass: 'emotion-happy',
+    eyeStyle: 'happy',
+    armIntensity: 1.6,
+    entryAnim: () => {
+      quickBounce(2);
+      spawnSparkles(5);
+    },
+  },
+  excited: {
+    screenColor: 'excited',
+    mouthCycleSpeed: 100,
+    speakMouths: ['wide', 'open', 'happy', 'wide', 'o', 'wide', 'happy', 'open'],
+    bodyClass: 'emotion-excited',
+    eyeStyle: 'wide',
+    armIntensity: 2.0,
+    entryAnim: () => {
+      quickBounce(3);
+      spawnSparkles(10);
+      wiggle(3);
+    },
+  },
+  thinking: {
+    screenColor: 'thinking',
+    mouthCycleSpeed: 220,
+    speakMouths: ['tiny', 'closed', 'o', 'tiny', 'closed', 'open', 'tiny', 'closed'],
+    bodyClass: 'emotion-thinking',
+    eyeStyle: 'lookUp',
+    armIntensity: 0.4,
+    entryAnim: () => {
+      eyeLookDirection('up', 600);
+    },
+  },
+  sad: {
+    screenColor: 'sad',
+    mouthCycleSpeed: 250,
+    speakMouths: ['sad', 'tiny', 'sad', 'closed', 'worried', 'sad', 'tiny', 'sad'],
+    bodyClass: 'emotion-sad',
+    eyeStyle: 'droopy',
+    armIntensity: 0.3,
+    entryAnim: () => {
+      droopBody();
+    },
+  },
+  surprised: {
+    screenColor: 'excited',
+    mouthCycleSpeed: 130,
+    speakMouths: ['surprise', 'o', 'wide', 'surprise', 'open', 'o', 'surprise', 'wide'],
+    bodyClass: 'emotion-surprised',
+    eyeStyle: 'wide',
+    armIntensity: 1.8,
+    entryAnim: () => {
+      jumpScare();
+    },
+  },
+  love: {
+    screenColor: 'love',
+    mouthCycleSpeed: 180,
+    speakMouths: ['smile', 'happy', 'smile', 'open', 'happy', 'smile', 'bigSmile', 'smile'],
+    bodyClass: 'emotion-love',
+    eyeStyle: 'happy',
+    armIntensity: 0.8,
+    entryAnim: () => {
+      spawnHearts(6);
+      sway(2);
+    },
+  },
+  curious: {
+    screenColor: 'curious',
+    mouthCycleSpeed: 170,
+    speakMouths: ['o', 'tiny', 'open', 'o', 'closed', 'open', 'tiny', 'o'],
+    bodyClass: 'emotion-curious',
+    eyeStyle: 'lookUp',
+    armIntensity: 0.7,
+    entryAnim: () => {
+      headTilt(8, 1200);
+    },
+  },
+  proud: {
+    screenColor: 'proud',
+    mouthCycleSpeed: 150,
+    speakMouths: ['smile', 'open', 'grin', 'open', 'smile', 'grin', 'open', 'smile'],
+    bodyClass: 'emotion-proud',
+    eyeStyle: 'happy',
+    armIntensity: 1.2,
+    entryAnim: () => {
+      puffUp();
+      spawnSparkles(4);
+    },
+  },
+  scared: {
+    screenColor: 'scared',
+    mouthCycleSpeed: 100,
+    speakMouths: ['surprise', 'o', 'surprise', 'worried', 'surprise', 'o', 'worried', 'surprise'],
+    bodyClass: 'emotion-scared',
+    eyeStyle: 'wide',
+    armIntensity: 2.0,
+    entryAnim: () => {
+      shiver(1500);
+    },
+  },
+  mischief: {
+    screenColor: 'mischief',
+    mouthCycleSpeed: 140,
+    speakMouths: ['smirk', 'open', 'smirk', 'grin', 'smirk', 'open', 'grin', 'smirk'],
+    bodyClass: 'emotion-mischief',
+    eyeStyle: 'squint',
+    armIntensity: 0.9,
+    entryAnim: () => {
+      headTilt(-6, 800);
+      eyeNarrow();
+    },
+  },
 };
 
 // ─── State ────────────────────────────────────────
@@ -128,7 +269,223 @@ function setHappyEyes(on) {
   }
 }
 
-// ─── Sparkles ────────────────────────────────────
+// ─── Eye Expression System ───────────────────────
+function setEyeStyle(style) {
+  // Reset eyes first
+  resetEyes();
+  
+  if (!style) return;
+  
+  switch (style) {
+    case 'happy':
+      setHappyEyes(true);
+      break;
+    case 'wide':
+      // Big surprised eyes — scale up
+      [leftEyeDot, rightEyeDot].forEach(e => {
+        if (!e) return;
+        e.style.transition = 'transform 0.2s ease-out';
+        e.style.transform = 'scale(1.4)';
+      });
+      break;
+    case 'lookUp':
+      [leftEyeDot, rightEyeDot].forEach(e => {
+        if (!e) return;
+        e.style.transition = 'transform 0.3s ease';
+        e.style.transform = 'translateY(-4px)';
+      });
+      break;
+    case 'droopy':
+      // Sad droopy eyes — squished and lowered
+      [leftEyeDot, rightEyeDot].forEach(e => {
+        if (!e) return;
+        e.style.transition = 'transform 0.4s ease';
+        e.style.transform = 'scaleY(0.6) translateY(2px)';
+      });
+      break;
+    case 'squint':
+      // Mischievous squint
+      [leftEyeDot, rightEyeDot].forEach(e => {
+        if (!e) return;
+        e.style.transition = 'transform 0.3s ease';
+        e.style.transform = 'scaleY(0.5) scaleX(1.2)';
+      });
+      break;
+  }
+}
+
+function resetEyes() {
+  setHappyEyes(false);
+  [leftEyeDot, rightEyeDot].forEach(e => {
+    if (!e) return;
+    e.style.transition = 'transform 0.3s ease';
+    e.style.transform = '';
+    setTimeout(() => { e.style.transition = ''; }, 300);
+  });
+}
+
+// ─── Eye Movement (look in direction) ────────────
+function eyeLookDirection(dir, duration = 800) {
+  const offsets = {
+    left:  { x: -5, y: 0 },
+    right: { x: 5, y: 0 },
+    up:    { x: 0, y: -4 },
+    down:  { x: 0, y: 3 },
+  };
+  const o = offsets[dir] || offsets.right;
+  [leftEyeDot, rightEyeDot].forEach(e => {
+    if (!e || e.style.display === 'none') return;
+    e.style.transition = 'transform 0.3s ease';
+    e.style.transform = `translate(${o.x}px, ${o.y}px)`;
+  });
+  if (duration > 0) {
+    setTimeout(() => {
+      [leftEyeDot, rightEyeDot].forEach(e => {
+        if (!e) return;
+        e.style.transform = '';
+        setTimeout(() => { e.style.transition = ''; }, 300);
+      });
+    }, duration);
+  }
+}
+
+function eyeNarrow() {
+  [leftEyeDot, rightEyeDot].forEach(e => {
+    if (!e) return;
+    e.style.transition = 'transform 0.3s ease';
+    e.style.transform = 'scaleY(0.45) scaleX(1.15)';
+  });
+}
+
+// ─── Emotive Body Animations ─────────────────────
+function quickBounce(times = 2) {
+  const dur = 200;
+  let i = 0;
+  function tick() {
+    if (i >= times) return;
+    bmoWrapper.style.transition = `transform ${dur/2}ms cubic-bezier(0.34, 1.56, 0.64, 1)`;
+    bmoWrapper.style.transform = 'translateY(-18px) scaleY(1.05)';
+    setTimeout(() => {
+      bmoWrapper.style.transform = 'translateY(2px) scaleY(0.96)';
+      setTimeout(() => {
+        bmoWrapper.style.transform = '';
+        i++;
+        if (i < times) setTimeout(tick, 80);
+        else setTimeout(() => { bmoWrapper.style.transition = ''; }, dur);
+      }, dur/2);
+    }, dur/2);
+  }
+  tick();
+}
+
+function wiggle(times = 3) {
+  let i = 0;
+  function tick() {
+    if (i >= times) return;
+    bmoWrapper.style.transition = 'transform 0.1s ease-in-out';
+    bmoWrapper.style.transform = `rotate(${i % 2 ? 5 : -5}deg)`;
+    i++;
+    setTimeout(tick, 100);
+  }
+  tick();
+  setTimeout(() => {
+    bmoWrapper.style.transform = '';
+    setTimeout(() => { bmoWrapper.style.transition = ''; }, 150);
+  }, times * 100 + 50);
+}
+
+function sway(times = 2) {
+  let i = 0;
+  function tick() {
+    if (i >= times * 2) {
+      bmoWrapper.style.transform = '';
+      setTimeout(() => { bmoWrapper.style.transition = ''; }, 500);
+      return;
+    }
+    bmoWrapper.style.transition = 'transform 0.5s ease-in-out';
+    bmoWrapper.style.transform = `rotate(${i % 2 ? 4 : -4}deg) translateX(${i % 2 ? 5 : -5}px)`;
+    i++;
+    setTimeout(tick, 500);
+  }
+  tick();
+}
+
+function headTilt(degrees = 5, duration = 1000) {
+  bmoWrapper.style.transition = 'transform 0.4s ease-in-out';
+  bmoWrapper.style.transform = `rotate(${degrees}deg)`;
+  setTimeout(() => {
+    bmoWrapper.style.transform = '';
+    setTimeout(() => { bmoWrapper.style.transition = ''; }, 400);
+  }, duration);
+}
+
+function jumpScare() {
+  bmoWrapper.style.transition = 'transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1)';
+  bmoWrapper.style.transform = 'translateY(-25px) scale(1.1)';
+  setTimeout(() => {
+    bmoWrapper.style.transform = 'translateY(3px) scale(0.97)';
+    setTimeout(() => {
+      bmoWrapper.style.transform = '';
+      setTimeout(() => { bmoWrapper.style.transition = ''; }, 200);
+    }, 150);
+  }, 200);
+}
+
+function droopBody() {
+  bmoWrapper.style.transition = 'transform 0.6s ease-in-out';
+  bmoWrapper.style.transform = 'translateY(5px) rotate(-2deg) scaleY(0.97)';
+  // Arms droop down
+  leftArm.style.transition = 'transform 0.5s ease';
+  rightArm.style.transition = 'transform 0.5s ease';
+  leftArm.style.transform = 'translateY(8px)';
+  rightArm.style.transform = 'translateY(8px)';
+}
+
+function puffUp() {
+  bmoWrapper.style.transition = 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
+  bmoWrapper.style.transform = 'translateY(-8px) scale(1.06)';
+  setTimeout(() => {
+    bmoWrapper.style.transform = 'scale(1.02)';
+    setTimeout(() => {
+      bmoWrapper.style.transform = '';
+      setTimeout(() => { bmoWrapper.style.transition = ''; }, 300);
+    }, 1000);
+  }, 400);
+}
+
+function shiver(duration = 1500) {
+  const start = Date.now();
+  let frame;
+  function tick() {
+    if (Date.now() - start > duration) {
+      bmoWrapper.style.transform = '';
+      return;
+    }
+    const x = (Math.random() - 0.5) * 4;
+    const r = (Math.random() - 0.5) * 3;
+    bmoWrapper.style.transform = `translateX(${x}px) rotate(${r}deg)`;
+    frame = requestAnimationFrame(tick);
+  }
+  tick();
+}
+
+function resetBodyExpression() {
+  bmoWrapper.style.transition = 'transform 0.3s ease';
+  bmoWrapper.style.transform = '';
+  leftArm.style.transition = 'transform 0.3s ease';
+  rightArm.style.transition = 'transform 0.3s ease';
+  leftArm.style.transform = '';
+  rightArm.style.transform = '';
+  setTimeout(() => {
+    bmoWrapper.style.transition = '';
+    leftArm.style.transition = '';
+    rightArm.style.transition = '';
+    leftArm.style.animation = '';
+    rightArm.style.animation = '';
+  }, 300);
+}
+
+// ─── Sparkles & Particles ────────────────────────
 function spawnSparkles(count = 6) {
   if (!sparklesDiv) return;
   const emojis = ['✨', '⭐', '🌟', '💫', '★'];
@@ -143,6 +500,65 @@ function spawnSparkles(count = 6) {
     sparklesDiv.appendChild(el);
     setTimeout(() => el.remove(), 1500);
   }
+}
+
+function spawnHearts(count = 4) {
+  if (!sparklesDiv) return;
+  const hearts = ['❤️', '💕', '💖', '💗', '💘'];
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('span');
+    el.className = 'sparkle';
+    el.textContent = hearts[Math.floor(Math.random() * hearts.length)];
+    el.style.left = (25 + Math.random() * 50) + '%';
+    el.style.top = (15 + Math.random() * 35) + '%';
+    el.style.animationDelay = (Math.random() * 0.8) + 's';
+    el.style.fontSize = (14 + Math.random() * 10) + 'px';
+    sparklesDiv.appendChild(el);
+    setTimeout(() => el.remove(), 2000);
+  }
+}
+
+// ─── Screen Color Pulse (during speaking) ────────
+let screenPulseInterval = null;
+function startScreenPulse(baseColor, accentColor) {
+  stopScreenPulse();
+  let toggle = false;
+  screenPulseInterval = setInterval(() => {
+    setScreenColor(toggle ? baseColor : (accentColor || baseColor));
+    toggle = !toggle;
+  }, 800);
+}
+function stopScreenPulse() {
+  clearInterval(screenPulseInterval);
+  screenPulseInterval = null;
+}
+
+// ─── Eye Glance During Speech ────────────────────
+let eyeGlanceInterval = null;
+function startEyeGlances() {
+  stopEyeGlances();
+  eyeGlanceInterval = setInterval(() => {
+    if (currentState !== 'speaking') { stopEyeGlances(); return; }
+    const dirs = ['left', 'right', 'up', 'left', 'right'];
+    const dir = dirs[Math.floor(Math.random() * dirs.length)];
+    const offsets = { left: { x: -3, y: 0 }, right: { x: 3, y: 0 }, up: { x: 0, y: -2 } };
+    const o = offsets[dir];
+    [leftEyeDot, rightEyeDot].forEach(e => {
+      if (!e || e.style.display === 'none') return;
+      e.style.transition = 'transform 0.25s ease';
+      e.style.transform = `translate(${o.x}px, ${o.y}px)`;
+    });
+    setTimeout(() => {
+      [leftEyeDot, rightEyeDot].forEach(e => {
+        if (!e || e.style.display === 'none') return;
+        e.style.transform = '';
+      });
+    }, 400);
+  }, 1200 + Math.random() * 1000);
+}
+function stopEyeGlances() {
+  clearInterval(eyeGlanceInterval);
+  eyeGlanceInterval = null;
 }
 
 // ─── Blink System ────────────────────────────────
@@ -195,16 +611,19 @@ function hideBubble() {
 }
 
 // ─── Mouth Cycling (speaking) ────────────────────
-const SPEAK_SEQUENCE = ['closed', 'open', 'o', 'open', 'wide', 'closed', 'o', 'open'];
+let currentSpeakSequence = ['closed', 'open', 'o', 'open', 'wide', 'closed', 'o', 'open'];
+let currentSpeakSpeed = 160;
 let mouthIdx = 0;
 
-function startMouthCycle() {
+function startMouthCycle(sequence, speed) {
   mouthIdx = 0;
+  if (sequence) currentSpeakSequence = sequence;
+  if (speed) currentSpeakSpeed = speed;
   clearInterval(mouthCycleInterval);
   mouthCycleInterval = setInterval(() => {
-    setMouth(SPEAK_SEQUENCE[mouthIdx % SPEAK_SEQUENCE.length]);
+    setMouth(currentSpeakSequence[mouthIdx % currentSpeakSequence.length]);
     mouthIdx++;
-  }, 160);
+  }, currentSpeakSpeed);
 }
 
 function stopMouthCycle() {
@@ -487,21 +906,71 @@ function doThink(doneCallback) {
 }
 
 let currentAudio = null;
+let currentEmotionProfile = null;
 
 function doSpeak(text, emotion, doneCallback, audioPath, audioDuration) {
   setState('speaking');
-  setScreenColor('idle');
+  
+  // Get emotion profile
+  const profile = EMOTION_PROFILES[emotion] || EMOTION_PROFILES.idle;
+  currentEmotionProfile = profile;
+  
+  // Apply emotion-specific screen color
+  setScreenColor(profile.screenColor);
+  
+  // Apply eye style for this emotion
+  setEyeStyle(profile.eyeStyle);
+  
+  // Run entry animation if present
+  if (profile.entryAnim) profile.entryAnim();
+  
+  // Apply emotion body class
+  if (profile.bodyClass) bmoWrapper.classList.add(profile.bodyClass);
+  
   showBubble(text);
-  startMouthCycle();
+  
+  // Start mouth cycle with emotion-specific sequence and speed
+  startMouthCycle(profile.speakMouths, profile.mouthCycleSpeed);
+  
+  // Eye glances during speech (more for calm emotions, less for intense)
+  if (profile.armIntensity < 1.5) startEyeGlances();
+  
+  // Screen color pulse for excited emotions
+  if (['excited', 'surprised', 'scared'].includes(emotion)) {
+    startScreenPulse(profile.screenColor, 'idle');
+  }
 
   if (isSitting) standUp();
 
   function finishSpeaking() {
     stopMouthCycle();
+    stopEyeGlances();
+    stopScreenPulse();
     if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+    
+    // Remove emotion body class
+    if (profile.bodyClass) bmoWrapper.classList.remove(profile.bodyClass);
 
-    if (emotion === 'happy') {
+    // Emotion-specific exit animations
+    if (['happy', 'excited', 'love', 'proud'].includes(emotion)) {
       doHappy(() => { returnToIdle(doneCallback); });
+    } else if (emotion === 'sad') {
+      // Slow fade back
+      setMouth('sad');
+      setTimeout(() => {
+        setMouth('tiny');
+        setTimeout(() => {
+          hideBubble();
+          returnToIdle(doneCallback);
+        }, 600);
+      }, 800);
+    } else if (emotion === 'surprised') {
+      setMouth('o');
+      quickBounce(1);
+      setTimeout(() => {
+        hideBubble();
+        returnToIdle(doneCallback);
+      }, 500);
     } else {
       hideBubble();
       returnToIdle(doneCallback);
@@ -531,8 +1000,10 @@ function doHappy(doneCallback) {
 function returnToIdle(callback) {
   setState('idle');
   setMouth('closed');
-  setHappyEyes(false);
+  resetEyes();
+  resetBodyExpression();
   setScreenColor('idle');
+  currentEmotionProfile = null;
   scheduleIdleFidget();
   scheduleSitToggle();
   if (callback) callback();
@@ -552,34 +1023,119 @@ function handleMessage(msg) {
   isAnimating = true;
 
   const text          = msg.text          || '';
-  const emotion       = msg.emotion       || 'idle';
+  const emotion       = detectEmotion(msg.emotion, text);
   const audioPath     = msg.audioPath     || null;
   const audioDuration = msg.audioDuration || null;
 
-  doThink(() => {
-    doSpeak(text, emotion, () => {
-      isAnimating = false;
-    }, audioPath, audioDuration);
-  });
+  // Emotion-aware thinking phase
+  const profile = EMOTION_PROFILES[emotion] || EMOTION_PROFILES.idle;
+  
+  // Quick emotions skip think phase, go straight to speaking
+  if (['excited', 'surprised', 'scared'].includes(emotion)) {
+    doSpeak(text, emotion, () => { isAnimating = false; }, audioPath, audioDuration);
+  } else {
+    doThink(() => {
+      doSpeak(text, emotion, () => {
+        isAnimating = false;
+      }, audioPath, audioDuration);
+    });
+  }
+}
+
+// ─── Smart Emotion Detection ─────────────────────
+// Enhance bridge-detected emotion with text analysis
+function detectEmotion(bridgeEmotion, text) {
+  // If bridge already set a specific emotion, trust it
+  if (bridgeEmotion && bridgeEmotion !== 'idle' && EMOTION_PROFILES[bridgeEmotion]) {
+    return bridgeEmotion;
+  }
+  
+  const lower = (text || '').toLowerCase();
+  
+  // Check for strong signals in text
+  if (/\b(love|❤️|💕|heart|adore)\b/i.test(lower)) return 'love';
+  if (/(!{2,}|🎉|🎊|amazing|incredible|awesome|insane|holy shit|fuck(ing)? (cool|awesome|brilliant))/i.test(lower)) return 'excited';
+  if (/(\?{2,}|hmm|wonder|curious|interesting|what if)/i.test(lower)) return 'curious';
+  if (/(😂|lol|lmao|haha|😏|sneaky|trick|mischie)/i.test(lower)) return 'mischief';
+  if (/(🎉|nice|great|well done|proud|nailed|killed it|congrat)/i.test(lower)) return 'proud';
+  if (/(sorry|sad|unfortunately|bad news|😢|😞)/i.test(lower)) return 'sad';
+  if (/(⚠️|careful|warning|watch out|oh no|shit|fuck(?!ing (cool|awesome|brilliant)))/i.test(lower)) return 'scared';
+  if (/(whoa|wow|😱|😮|unexpected|surprise|wait what)/i.test(lower)) return 'surprised';
+  if (/(👋|hey|hello|happy|😊|🙌|great|good|cool)/i.test(lower)) return 'happy';
+  
+  return bridgeEmotion || 'idle';
 }
 
 // ─── Click Reactions ─────────────────────────────
 const CLICK_REACTIONS = [
-  () => { setMouth('happy'); setHappyEyes(true); spawnSparkles(4); setTimeout(() => { setMouth('closed'); setHappyEyes(false); }, 1500); },
-  () => { setMouth('surprise'); setScreenColor('excited'); setTimeout(() => { setMouth('closed'); setScreenColor('idle'); }, 800); },
-  () => { doWave(); },
-  () => { setMouth('grin'); setHappyEyes(true); spawnSparkles(6); setTimeout(() => { setMouth('closed'); setHappyEyes(false); }, 2000); },
+  // Happy sparkle
+  () => { setMouth('happy'); setHappyEyes(true); spawnSparkles(4); setScreenColor('happy');
+    setTimeout(() => { setMouth('closed'); setHappyEyes(false); setScreenColor('idle'); }, 1500); },
+  // Surprised
+  () => { setMouth('surprise'); setEyeStyle('wide'); setScreenColor('excited'); jumpScare();
+    setTimeout(() => { setMouth('closed'); resetEyes(); setScreenColor('idle'); }, 800); },
+  // Wave
+  () => { doWave(); setMouth('smile'); setTimeout(() => setMouth('closed'), 1000); },
+  // Big grin
+  () => { setMouth('grin'); setHappyEyes(true); spawnSparkles(6); setScreenColor('happy');
+    setTimeout(() => { setMouth('closed'); setHappyEyes(false); setScreenColor('idle'); }, 2000); },
+  // Squish
   () => { 
     bmoWrapper.classList.add('clicked');
     setTimeout(() => bmoWrapper.classList.remove('clicked'), 150);
-    setMouth('o');
-    setTimeout(() => setMouth('closed'), 600);
+    setMouth('o'); setEyeStyle('wide');
+    setTimeout(() => { setMouth('closed'); resetEyes(); }, 600);
   },
+  // Spin!
   () => {
-    // Spin!
+    setMouth('happy'); setHappyEyes(true);
     bmoWrapper.style.transition = 'transform 0.5s ease-in-out';
     bmoWrapper.style.transform = 'rotate(360deg)';
-    setTimeout(() => { bmoWrapper.style.transform = ''; bmoWrapper.style.transition = ''; }, 600);
+    setTimeout(() => { bmoWrapper.style.transform = ''; bmoWrapper.style.transition = '';
+      setMouth('closed'); setHappyEyes(false); }, 600);
+  },
+  // Shy blush — look away + tiny smile
+  () => {
+    setMouth('tiny'); eyeLookDirection('left', 1200); setScreenColor('love');
+    setTimeout(() => { setMouth('smile'); }, 400);
+    setTimeout(() => { setMouth('closed'); setScreenColor('idle'); }, 1500);
+  },
+  // Mischievous wink (one eye closes)
+  () => {
+    setMouth('smirk'); setScreenColor('mischief');
+    if (leftEyeDot) { leftEyeDot.style.transition = 'transform 0.15s'; leftEyeDot.style.transform = 'scaleY(0.05)'; }
+    setTimeout(() => {
+      if (leftEyeDot) { leftEyeDot.style.transform = ''; setTimeout(() => { leftEyeDot.style.transition = ''; }, 200); }
+      setMouth('closed'); setScreenColor('idle');
+    }, 1000);
+  },
+  // Love burst
+  () => {
+    setMouth('bigSmile'); setHappyEyes(true); setScreenColor('love'); spawnHearts(5); quickBounce(1);
+    setTimeout(() => { setMouth('closed'); setHappyEyes(false); setScreenColor('idle'); }, 2000);
+  },
+  // Dizzy spin
+  () => {
+    setMouth('o');
+    let spins = 0;
+    const spinInterval = setInterval(() => {
+      bmoWrapper.style.transform = `rotate(${spins * 120}deg)`;
+      bmoWrapper.style.transition = 'transform 0.15s linear';
+      spins++;
+      if (spins > 4) {
+        clearInterval(spinInterval);
+        bmoWrapper.style.transform = '';
+        bmoWrapper.style.transition = '';
+        // Dizzy eyes
+        [leftEyeDot, rightEyeDot].forEach(e => {
+          if (!e) return;
+          e.style.transition = 'transform 0.5s ease';
+          e.style.transform = 'rotate(90deg) scale(0.8)';
+        });
+        setMouth('surprise');
+        setTimeout(() => { resetEyes(); setMouth('closed'); }, 1200);
+      }
+    }, 120);
   },
 ];
 
