@@ -184,11 +184,23 @@ function generateTTS(text, emotion = 'idle') {
   });
 }
 
-// ─── Send message to BMO renderer ─────────────────────────────────────────────
+// ─── Message Queue (prevents overlapping speech) ──────────────────────────────
+const messageQueue = [];
+let isSpeaking = false;
+
 async function sendToBmo(text, emotion = 'idle') {
   if (!text || text.trim() === '' || text === 'NO_REPLY' || text === 'HEARTBEAT_OK') return;
+  messageQueue.push({ text, emotion });
+  if (!isSpeaking) processQueue();
+}
+
+async function processQueue() {
+  if (messageQueue.length === 0) { isSpeaking = false; return; }
+  isSpeaking = true;
+  
+  const { text, emotion } = messageQueue.shift();
   const displayText = text.length > 200 ? text.substring(0, 197) + '...' : text;
-  const msg = { text: displayText, emotion, timestamp: Date.now(), audioPath: null };
+  const msg = { text: displayText, emotion, timestamp: Date.now(), audioPath: null, audioDuration: null };
 
   // Generate TTS audio
   try {
@@ -199,35 +211,35 @@ async function sendToBmo(text, emotion = 'idle') {
   }
 
   // Write to file for compatibility
-  try {
-    fs.writeFileSync(MESSAGES_FILE, JSON.stringify(msg, null, 2));
-  } catch (e) {}
+  try { fs.writeFileSync(MESSAGES_FILE, JSON.stringify(msg, null, 2)); } catch (e) {}
 
-  // Play audio via system player + get duration for mouth sync
+  // Get duration, send to renderer, play audio, then process next
   if (msg.audioPath && process.platform === 'darwin') {
     const { exec: execCmd } = require('child_process');
-    // Get audio duration first
     execCmd(`afinfo "${msg.audioPath}" | grep duration`, (err, stdout) => {
       const match = stdout && stdout.match(/([\d.]+)\s*sec/);
       if (match) {
-        msg.audioDuration = Math.ceil(parseFloat(match[1]) * 1000); // ms
+        msg.audioDuration = Math.ceil(parseFloat(match[1]) * 1000);
       }
-      // Send to renderer with duration info
+      // Send to renderer
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('new-message', msg);
       }
-      // Play audio
-      execCmd(`afplay "${msg.audioPath}"`);
+      // Play audio, wait for it to finish, then next in queue
+      const player = execCmd(`afplay "${msg.audioPath}"`, () => {
+        // afplay finished — wait a beat then process next message
+        setTimeout(processQueue, 500);
+      });
     });
-    // Write to file for compatibility
-    try { fs.writeFileSync(MESSAGES_FILE, JSON.stringify(msg, null, 2)); } catch (e) {}
-    return; // skip the send below since we send after getting duration
+    return;
   }
 
-  // Send directly to renderer
+  // No audio — send to renderer, wait estimated duration, then next
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('new-message', msg);
   }
+  const waitMs = Math.max(2000, displayText.length * 50) + 500;
+  setTimeout(processQueue, waitMs);
 }
 
 // ─── Session JSONL tailing ────────────────────────────────────────────────────

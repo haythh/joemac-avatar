@@ -1,6 +1,6 @@
 {
-  "text": "Now update `sendToBmo` to pass emotion to TTS:",
+  "text": "\n\nThe bridge is firing every assistant message immediately without waiting for the previous one to finish. Need a queue.",
   "emotion": "idle",
-  "timestamp": 1772095051999,
-  "audioPath": "/Users/haythemhaddad/.openclaw/workspace/joemac-avatar/audio/bmo-1772095052885.mp3"
+  "timestamp": 1772095303180,
+  "audioPath": "/Users/haythemhaddad/.openclaw/workspace/joemac-avatar/audio/bmo-1772095304350.mp3"
 }
