@@ -1,6 +1,6 @@
 {
-  "text": "Now update the renderer to use the preload helper:",
+  "text": "Simplest fix — use `child_process` to call `afplay` from main process when audio is ready:",
   "emotion": "idle",
-  "timestamp": 1772094149785,
-  "audioPath": "/Users/haythemhaddad/.openclaw/workspace/joemac-avatar/audio/bmo-1772094150571.mp3"
+  "timestamp": 1772094245810,
+  "audioPath": "/Users/haythemhaddad/.openclaw/workspace/joemac-avatar/audio/bmo-1772094246842.mp3"
 }

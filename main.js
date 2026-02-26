@@ -174,6 +174,12 @@ async function sendToBmo(text, emotion = 'idle') {
     fs.writeFileSync(MESSAGES_FILE, JSON.stringify(msg, null, 2));
   } catch (e) {}
 
+  // Play audio via system player (reliable, bypasses Electron audio issues)
+  if (msg.audioPath && process.platform === 'darwin') {
+    const { exec: execCmd } = require('child_process');
+    execCmd(`afplay "${msg.audioPath}"`);
+  }
+
   // Send directly to renderer
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('new-message', msg);
