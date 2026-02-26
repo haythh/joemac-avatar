@@ -174,10 +174,25 @@ async function sendToBmo(text, emotion = 'idle') {
     fs.writeFileSync(MESSAGES_FILE, JSON.stringify(msg, null, 2));
   } catch (e) {}
 
-  // Play audio via system player (reliable, bypasses Electron audio issues)
+  // Play audio via system player + get duration for mouth sync
   if (msg.audioPath && process.platform === 'darwin') {
     const { exec: execCmd } = require('child_process');
-    execCmd(`afplay "${msg.audioPath}"`);
+    // Get audio duration first
+    execCmd(`afinfo "${msg.audioPath}" | grep duration`, (err, stdout) => {
+      const match = stdout && stdout.match(/([\d.]+)\s*sec/);
+      if (match) {
+        msg.audioDuration = Math.ceil(parseFloat(match[1]) * 1000); // ms
+      }
+      // Send to renderer with duration info
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('new-message', msg);
+      }
+      // Play audio
+      execCmd(`afplay "${msg.audioPath}"`);
+    });
+    // Write to file for compatibility
+    try { fs.writeFileSync(MESSAGES_FILE, JSON.stringify(msg, null, 2)); } catch (e) {}
+    return; // skip the send below since we send after getting duration
   }
 
   // Send directly to renderer

@@ -488,7 +488,7 @@ function doThink(doneCallback) {
 
 let currentAudio = null;
 
-function doSpeak(text, emotion, doneCallback, audioPath) {
+function doSpeak(text, emotion, doneCallback, audioPath, audioDuration) {
   setState('speaking');
   setScreenColor('idle');
   showBubble(text);
@@ -508,32 +508,9 @@ function doSpeak(text, emotion, doneCallback, audioPath) {
     }
   }
 
-  if (audioPath) {
-    // Play TTS audio and sync duration
-    // Load audio via preload (avoids file:// security blocks)
-    let audioSrc = audioPath;
-    if (window.joemac && window.joemac.readAudioFile) {
-      const dataUrl = window.joemac.readAudioFile(audioPath);
-      if (dataUrl) audioSrc = dataUrl;
-    }
-    currentAudio = new Audio(audioSrc);
-    currentAudio.volume = 0.8;
-    currentAudio.play().catch(err => { console.error('Audio play error:', err); });
-    currentAudio.onended = () => { finishSpeaking(); };
-    // Fallback timeout in case audio fails
-    const fallbackDuration = Math.max(3000, text.length * 60);
-    setTimeout(() => {
-      if (currentAudio && !currentAudio.ended) {
-        // Audio still playing, let it finish
-      } else {
-        finishSpeaking();
-      }
-    }, fallbackDuration);
-  } else {
-    // No audio — use text-based duration
-    const duration = Math.max(1500, text.length * 50);
-    setTimeout(finishSpeaking, duration);
-  }
+  // Use audio duration if available, otherwise estimate from text
+  const duration = audioDuration || Math.max(1500, text.length * 50);
+  setTimeout(finishSpeaking, duration + 500);
 }
 
 function doHappy(doneCallback) {
@@ -574,14 +551,15 @@ function handleMessage(msg) {
   if (isAnimating) return;
   isAnimating = true;
 
-  const text      = msg.text      || '';
-  const emotion   = msg.emotion   || 'idle';
-  const audioPath = msg.audioPath || null;
+  const text          = msg.text          || '';
+  const emotion       = msg.emotion       || 'idle';
+  const audioPath     = msg.audioPath     || null;
+  const audioDuration = msg.audioDuration || null;
 
   doThink(() => {
     doSpeak(text, emotion, () => {
       isAnimating = false;
-    }, audioPath);
+    }, audioPath, audioDuration);
   });
 }
 
