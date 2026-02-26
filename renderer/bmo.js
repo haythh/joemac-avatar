@@ -20,8 +20,8 @@ const bmoShadow    = document.getElementById('bmo-shadow');
 // Happy eye arcs
 const leftEyeHappy  = document.getElementById('left-eye-happy');
 const rightEyeHappy = document.getElementById('right-eye-happy');
-const leftEyeDot    = leftEye.querySelector('circle');
-const rightEyeDot   = rightEye.querySelector('circle');
+const leftEyeDot    = leftEye.querySelector('ellipse') || leftEye.querySelector('circle');
+const rightEyeDot   = rightEye.querySelector('ellipse') || rightEye.querySelector('circle');
 
 // ─── Mouth Shapes (SVG path data) ────────────────
 const MOUTH_SHAPES = {
