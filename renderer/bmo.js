@@ -189,23 +189,21 @@ function sitDown() {
   
   bmoWrapper.classList.add('sitting');
   
-  // Bend legs outward (sitting pose)
-  const leftLeg = document.querySelector('#limbs path:nth-of-type(1)');
-  const rightLeg = document.querySelector('#limbs path:nth-of-type(2)');
-  // Splay legs out
-  if (leftLeg) leftLeg.setAttribute('d', 'M 150 375 Q 120 400 110 440');
-  if (rightLeg) rightLeg.setAttribute('d', 'M 250 375 Q 280 400 290 440');
+  const leftLeg = document.getElementById('left-leg');
+  const rightLeg = document.getElementById('right-leg');
+  const leftFoot = document.getElementById('left-foot');
+  const rightFoot = document.getElementById('right-foot');
   
-  // Move feet
-  const leftFoot = document.querySelector('#limbs ellipse:nth-of-type(1)');
-  const rightFoot = document.querySelector('#limbs ellipse:nth-of-type(2)');
-  if (leftFoot) { leftFoot.setAttribute('cx', '105'); leftFoot.setAttribute('cy', '442'); }
-  if (rightFoot) { rightFoot.setAttribute('cx', '295'); rightFoot.setAttribute('cy', '442'); }
+  // Splay legs outward (sitting pose)
+  if (leftLeg) leftLeg.setAttribute('d', 'M 150 375 Q 115 395 105 435');
+  if (rightLeg) rightLeg.setAttribute('d', 'M 250 375 Q 285 395 295 435');
+  if (leftFoot) { leftFoot.setAttribute('cx', '100'); leftFoot.setAttribute('cy', '438'); }
+  if (rightFoot) { rightFoot.setAttribute('cx', '300'); rightFoot.setAttribute('cy', '438'); }
   
-  // Shadow wider when sitting
   if (bmoShadow) { bmoShadow.style.width = '160px'; }
   
   setMouth('smile');
+  console.log('🪑 BMO sat down');
   setTimeout(() => { if (isSitting && !isAnimating) setMouth('closed'); }, 1500);
 }
 
@@ -215,18 +213,18 @@ function standUp() {
   
   bmoWrapper.classList.remove('sitting');
   
-  // Restore legs
-  const leftLeg = document.querySelector('#limbs path:nth-of-type(1)');
-  const rightLeg = document.querySelector('#limbs path:nth-of-type(2)');
+  const leftLeg = document.getElementById('left-leg');
+  const rightLeg = document.getElementById('right-leg');
+  const leftFoot = document.getElementById('left-foot');
+  const rightFoot = document.getElementById('right-foot');
+  
   if (leftLeg) leftLeg.setAttribute('d', 'M 150 375 L 150 440');
   if (rightLeg) rightLeg.setAttribute('d', 'M 250 375 L 250 440');
-  
-  const leftFoot = document.querySelector('#limbs ellipse:nth-of-type(1)');
-  const rightFoot = document.querySelector('#limbs ellipse:nth-of-type(2)');
   if (leftFoot) { leftFoot.setAttribute('cx', '140'); leftFoot.setAttribute('cy', '442'); }
   if (rightFoot) { rightFoot.setAttribute('cx', '260'); rightFoot.setAttribute('cy', '442'); }
   
-  if (bmoShadow) { bmoShadow.style.width = '120px'; }
+  if (bmoShadow) { bmoShadow.style.width = '100px'; }
+  console.log('🧍 BMO stood up');
 }
 
 function scheduleSitToggle() {

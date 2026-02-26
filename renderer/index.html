@@ -87,12 +87,20 @@
   /* ─── IDLE float ─── */
   @keyframes bmo-float {
     0%, 100% { transform: translateY(0px); }
-    40%      { transform: translateY(-7px); }
-    60%      { transform: translateY(-5px); }
+    40%      { transform: translateY(-5px); }
+    60%      { transform: translateY(-3px); }
+  }
+  @keyframes shadow-pulse {
+    0%, 100% { transform: scaleX(1); opacity: 0.7; }
+    40%      { transform: scaleX(0.85); opacity: 0.5; }
+    60%      { transform: scaleX(0.9); opacity: 0.55; }
   }
   #bmo-wrapper {
     animation: bmo-float 4s ease-in-out infinite;
     transform-origin: center bottom;
+  }
+  #bmo-shadow {
+    animation: shadow-pulse 4s ease-in-out infinite;
   }
 
   /* ─── IDLE arm sway ─── */
@@ -259,12 +267,12 @@
         </g>
 
         <!-- Left leg -->
-        <path d="M 150 375 L 150 440" fill="none" stroke="#1D2D2A" stroke-width="8" stroke-linecap="round" />
-        <ellipse cx="140" cy="442" rx="14" ry="7" fill="#1D2D2A" />
+        <path id="left-leg" d="M 150 375 L 150 440" fill="none" stroke="#1D2D2A" stroke-width="8" stroke-linecap="round" />
+        <ellipse id="left-foot" cx="140" cy="442" rx="14" ry="7" fill="#1D2D2A" />
 
         <!-- Right leg -->
-        <path d="M 250 375 L 250 440" fill="none" stroke="#1D2D2A" stroke-width="8" stroke-linecap="round" />
-        <ellipse cx="260" cy="442" rx="14" ry="7" fill="#1D2D2A" />
+        <path id="right-leg" d="M 250 375 L 250 440" fill="none" stroke="#1D2D2A" stroke-width="8" stroke-linecap="round" />
+        <ellipse id="right-foot" cx="260" cy="442" rx="14" ry="7" fill="#1D2D2A" />
       </g>
 
       <!-- ═══ BODY ═══ -->
@@ -343,12 +351,13 @@
 
 <style>
   #bmo-shadow {
-    width: 120px;
-    height: 14px;
-    background: radial-gradient(ellipse, rgba(0,0,0,0.18) 0%, transparent 70%);
+    width: 100px;
+    height: 12px;
+    background: radial-gradient(ellipse, rgba(0,0,0,0.2) 0%, transparent 70%);
     border-radius: 50%;
-    margin-top: -8px;
+    margin-top: -2px;
     transition: all 0.5s ease;
+    flex-shrink: 0;
   }
 
   /* Sitting pose */
