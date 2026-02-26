@@ -724,7 +724,7 @@ window.addEventListener('mouseup', async () => {
   let lastTime = performance.now();
   let bounceCount = 0;
   
-  const floorY = physics.screenBounds.height - physics.windowSize.h - 20; // raise floor so BMO isn't cut off
+  const floorY = physics.screenBounds.height - physics.windowSize.h - 100; // raise floor so BMO fully visible
   
   function tick(now) {
     if (physics.isDragging || !physics.falling) return;
