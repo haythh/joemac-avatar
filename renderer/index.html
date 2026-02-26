@@ -95,6 +95,26 @@
     transform-origin: center bottom;
   }
 
+  /* ─── IDLE arm sway ─── */
+  @keyframes idle-sway-left {
+    0%, 100% { transform: rotate(0deg); }
+    30%      { transform: rotate(3deg); }
+    70%      { transform: rotate(-2deg); }
+  }
+  @keyframes idle-sway-right {
+    0%, 100% { transform: rotate(0deg); }
+    40%      { transform: rotate(-3deg); }
+    80%      { transform: rotate(2deg); }
+  }
+  #left-arm {
+    animation: idle-sway-left 5s ease-in-out infinite;
+    transform-origin: 105px 220px;
+  }
+  #right-arm {
+    animation: idle-sway-right 5.5s ease-in-out infinite;
+    transform-origin: 295px 220px;
+  }
+
   /* ─── WAVE (left arm — the one that goes up) ─── */
   @keyframes arm-wave {
     0%   { transform: rotate(0deg); }
@@ -223,12 +243,12 @@
       <g id="limbs">
         <!-- Left arm (raised one) -->
         <g id="left-arm">
-          <path d="M 105 220 C 70 210, 50 170, 60 140" fill="none" stroke="#1D2D2A" stroke-width="8" stroke-linecap="round" />
+          <path d="M 105 220 C 70 230, 50 270, 60 310" fill="none" stroke="#1D2D2A" stroke-width="8" stroke-linecap="round" />
         </g>
 
         <!-- Right arm (hanging) -->
         <g id="right-arm">
-          <path d="M 295 240 C 330 250, 350 270, 340 310" fill="none" stroke="#1D2D2A" stroke-width="8" stroke-linecap="round" />
+          <path d="M 295 220 C 330 230, 350 270, 340 310" fill="none" stroke="#1D2D2A" stroke-width="8" stroke-linecap="round" />
         </g>
 
         <!-- Left leg -->

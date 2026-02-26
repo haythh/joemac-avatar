@@ -156,7 +156,80 @@ function doHappy(doneCallback) {
 function returnToIdle(callback) {
   setState('idle');
   setMouth('closed');
+  // Restart idle fidgets
+  scheduleIdleFidget();
   if (callback) callback();
+}
+
+// ─── Idle Fidgets (random micro-animations) ──────
+let fidgetTimeout = null;
+
+const IDLE_FIDGETS = [
+  // Look left then back
+  () => {
+    [leftEye, rightEye].forEach(e => { e.style.transition = 'transform 0.4s'; e.style.transform = 'translateX(-4px)'; });
+    setTimeout(() => {
+      [leftEye, rightEye].forEach(e => { e.style.transform = 'translateX(0)'; });
+      setTimeout(() => { [leftEye, rightEye].forEach(e => { e.style.transition = ''; }); }, 400);
+    }, 800);
+  },
+  // Look right then back
+  () => {
+    [leftEye, rightEye].forEach(e => { e.style.transition = 'transform 0.4s'; e.style.transform = 'translateX(4px)'; });
+    setTimeout(() => {
+      [leftEye, rightEye].forEach(e => { e.style.transform = 'translateX(0)'; });
+      setTimeout(() => { [leftEye, rightEye].forEach(e => { e.style.transition = ''; }); }, 400);
+    }, 800);
+  },
+  // Look up
+  () => {
+    [leftEye, rightEye].forEach(e => { e.style.transition = 'transform 0.4s'; e.style.transform = 'translateY(-3px)'; });
+    setTimeout(() => {
+      [leftEye, rightEye].forEach(e => { e.style.transform = 'translateY(0)'; });
+      setTimeout(() => { [leftEye, rightEye].forEach(e => { e.style.transition = ''; }); }, 400);
+    }, 1000);
+  },
+  // Quick smile
+  () => {
+    setMouth('smile');
+    setTimeout(() => { if (currentState === 'idle') setMouth('closed'); }, 1500);
+  },
+  // Tiny head tilt (whole wrapper)
+  () => {
+    bmoWrapper.style.transition = 'transform 0.6s ease-in-out';
+    bmoWrapper.style.transform = 'rotate(3deg)';
+    setTimeout(() => {
+      bmoWrapper.style.transform = 'rotate(-2deg)';
+      setTimeout(() => {
+        bmoWrapper.style.transform = '';
+        bmoWrapper.style.transition = '';
+      }, 600);
+    }, 800);
+  },
+  // Double blink
+  () => {
+    doBlink();
+    setTimeout(doBlink, 250);
+  },
+  // "O" mouth (surprised)
+  () => {
+    setMouth('o');
+    setTimeout(() => { if (currentState === 'idle') setMouth('closed'); }, 800);
+  },
+];
+
+function scheduleIdleFidget() {
+  clearTimeout(fidgetTimeout);
+  const delay = 4000 + Math.random() * 8000; // 4–12 seconds
+  fidgetTimeout = setTimeout(() => {
+    if (currentState !== 'idle' || isAnimating) {
+      scheduleIdleFidget();
+      return;
+    }
+    const fidget = IDLE_FIDGETS[Math.floor(Math.random() * IDLE_FIDGETS.length)];
+    fidget();
+    scheduleIdleFidget();
+  }, delay);
 }
 
 // ─── Full Message Sequence ────────────────────────
@@ -187,6 +260,7 @@ function startup() {
   setState('idle');
   setMouth('closed');
   scheduleBlink();
+  scheduleIdleFidget();
 
   // Wave on startup after 2s
   setTimeout(() => {
