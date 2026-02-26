@@ -111,15 +111,36 @@ const https = require('https');
 const audioDir = path.join(__dirname, 'audio');
 if (!fs.existsSync(audioDir)) fs.mkdirSync(audioDir);
 
-function generateTTS(text) {
+// ─── Voice Emotion Profiles ─────────────────────────────────────────────────
+const VOICE_PROFILES = {
+  idle:      { stability: 0.60, similarity_boost: 0.85, style: 0.0,  speed: 1.0  },
+  happy:     { stability: 0.45, similarity_boost: 0.80, style: 0.3,  speed: 1.1  },
+  excited:   { stability: 0.30, similarity_boost: 0.75, style: 0.5,  speed: 1.25 },
+  thinking:  { stability: 0.70, similarity_boost: 0.85, style: 0.0,  speed: 0.9  },
+  sad:       { stability: 0.35, similarity_boost: 0.90, style: 0.2,  speed: 0.8  },
+  surprised: { stability: 0.25, similarity_boost: 0.80, style: 0.4,  speed: 1.2  },
+  love:      { stability: 0.50, similarity_boost: 0.90, style: 0.3,  speed: 0.85 },
+  curious:   { stability: 0.55, similarity_boost: 0.85, style: 0.15, speed: 0.95 },
+  proud:     { stability: 0.50, similarity_boost: 0.85, style: 0.25, speed: 1.05 },
+  scared:    { stability: 0.20, similarity_boost: 0.80, style: 0.4,  speed: 1.3  },
+  mischief:  { stability: 0.40, similarity_boost: 0.80, style: 0.35, speed: 1.05 },
+};
+
+function generateTTS(text, emotion = 'idle') {
   return new Promise((resolve, reject) => {
-    // Truncate for TTS (save API credits)
     const ttsText = text.length > 300 ? text.substring(0, 297) + '...' : text;
     
+    const vp = VOICE_PROFILES[emotion] || VOICE_PROFILES.idle;
     const body = JSON.stringify({
       text: ttsText,
       model_id: 'eleven_multilingual_v2',
-      voice_settings: { stability: 0.6, similarity_boost: 0.85 }
+      voice_settings: {
+        stability: vp.stability,
+        similarity_boost: vp.similarity_boost,
+        style: vp.style,
+        use_speaker_boost: true
+      },
+      generation_config: { speed: vp.speed }
     });
 
     const req = https.request({
@@ -171,7 +192,7 @@ async function sendToBmo(text, emotion = 'idle') {
 
   // Generate TTS audio
   try {
-    const audioFile = await generateTTS(displayText);
+    const audioFile = await generateTTS(displayText, emotion);
     if (audioFile) msg.audioPath = audioFile;
   } catch (e) {
     console.error('TTS failed:', e.message);
