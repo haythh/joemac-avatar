@@ -70,8 +70,16 @@ function setState(state) {
 function setMouth(shape) {
   if (MOUTH_SHAPES[shape]) {
     const isFilled = ['open', 'wide', 'happy', 'grin', 'o', 'surprise'].includes(shape);
+    const showTeeth = ['open', 'wide', 'happy', 'grin'].includes(shape);
+    
     mouthPath.setAttribute('d', MOUTH_SHAPES[shape]);
-    mouthPath.setAttribute('fill', isFilled ? '#1D2D2A' : 'none');
+    mouthPath.setAttribute('fill', isFilled ? '#1D5C4A' : 'none');
+    
+    // Show/hide teeth and tongue for open mouth states
+    const teeth = document.getElementById('mouth-teeth');
+    const tongue = document.getElementById('mouth-tongue');
+    if (teeth) teeth.style.display = showTeeth ? '' : 'none';
+    if (tongue) tongue.style.display = isFilled ? '' : 'none';
   }
 }
 
@@ -194,11 +202,12 @@ function sitDown() {
   const leftFoot = document.getElementById('left-foot');
   const rightFoot = document.getElementById('right-foot');
   
-  // Splay legs outward (sitting pose)
-  if (leftLeg) leftLeg.setAttribute('d', 'M 150 375 Q 115 395 105 435');
-  if (rightLeg) rightLeg.setAttribute('d', 'M 250 375 Q 285 395 295 435');
-  if (leftFoot) { leftFoot.setAttribute('cx', '100'); leftFoot.setAttribute('cy', '438'); }
-  if (rightFoot) { rightFoot.setAttribute('cx', '300'); rightFoot.setAttribute('cy', '438'); }
+  // Splay legs outward — feet point outward like sitting BMO
+  if (leftLeg) leftLeg.setAttribute('d', 'M 150 375 C 140 390 110 400 90 410');
+  if (rightLeg) rightLeg.setAttribute('d', 'M 250 375 C 260 390 290 400 310 410');
+  // Feet become horizontal, pointing outward (L-shaped)
+  if (leftFoot) { leftFoot.setAttribute('cx', '78'); leftFoot.setAttribute('cy', '412'); leftFoot.setAttribute('rx', '16'); leftFoot.setAttribute('ry', '6'); }
+  if (rightFoot) { rightFoot.setAttribute('cx', '322'); rightFoot.setAttribute('cy', '412'); rightFoot.setAttribute('rx', '16'); rightFoot.setAttribute('ry', '6'); }
   
   if (bmoShadow) { bmoShadow.style.width = '160px'; }
   
@@ -220,8 +229,8 @@ function standUp() {
   
   if (leftLeg) leftLeg.setAttribute('d', 'M 150 375 L 150 440');
   if (rightLeg) rightLeg.setAttribute('d', 'M 250 375 L 250 440');
-  if (leftFoot) { leftFoot.setAttribute('cx', '140'); leftFoot.setAttribute('cy', '442'); }
-  if (rightFoot) { rightFoot.setAttribute('cx', '260'); rightFoot.setAttribute('cy', '442'); }
+  if (leftFoot) { leftFoot.setAttribute('cx', '140'); leftFoot.setAttribute('cy', '442'); leftFoot.setAttribute('rx', '14'); leftFoot.setAttribute('ry', '7'); }
+  if (rightFoot) { rightFoot.setAttribute('cx', '260'); rightFoot.setAttribute('cy', '442'); rightFoot.setAttribute('rx', '14'); rightFoot.setAttribute('ry', '7'); }
   
   if (bmoShadow) { bmoShadow.style.width = '100px'; }
   console.log('🧍 BMO stood up');
