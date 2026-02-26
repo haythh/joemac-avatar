@@ -1,0 +1,16 @@
+{
+  "name": "joemac-avatar",
+  "version": "1.0.0",
+  "description": "BMO-style floating desktop companion for JoeMac",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "keywords": ["electron", "bmo", "avatar", "desktop", "companion"],
+  "author": "JoeMac",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0"
+  }
+}

@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>JoeMac Avatar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  /* ─── Reset & base ─── */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: transparent;
+    -webkit-app-region: no-drag;
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+  }
+
+  /* ─── App container ─── */
+  #app {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding-bottom: 10px;
+    position: relative;
+    user-select: none;
+  }
+
+  /* ─── Speech bubble ─── */
+  #speech-bubble {
+    position: absolute;
+    bottom: calc(100% - 60px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.96);
+    color: #1a1a2e;
+    border-radius: 14px;
+    padding: 10px 14px;
+    max-width: 250px;
+    width: max-content;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.4;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.18), 0 1px 4px rgba(0,0,0,0.10);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 100;
+    /* Triangle pointer */
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.12));
+  }
+
+  #speech-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 9px solid transparent;
+    border-right: 9px solid transparent;
+    border-top: 9px solid rgba(255,255,255,0.96);
+  }
+
+  #speech-bubble.visible {
+    opacity: 1;
+  }
+
+  /* ─── BMO container ─── */
+  #bmo-wrapper {
+    position: relative;
+    width: 220px;
+    height: 280px;
+    -webkit-app-region: drag;
+    cursor: grab;
+  }
+
+  #bmo-wrapper:active { cursor: grabbing; }
+
+  #bmo-wrapper svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  /* ─── IDLE: gentle float + breathe ─── */
+  @keyframes bmo-float {
+    0%, 100% { transform: translateY(0px) scaleY(1); }
+    40%       { transform: translateY(-7px) scaleY(1.01); }
+    60%       { transform: translateY(-5px) scaleY(1.01); }
+  }
+
+  #bmo-wrapper {
+    animation: bmo-float 4s ease-in-out infinite;
+    transform-origin: center bottom;
+  }
+
+  /* ─── WAVE: right arm waves ─── */
+  @keyframes arm-wave {
+    0%   { transform: rotate(0deg); }
+    15%  { transform: rotate(-40deg) translateY(-4px); }
+    30%  { transform: rotate(-10deg) translateY(-2px); }
+    45%  { transform: rotate(-45deg) translateY(-5px); }
+    60%  { transform: rotate(-15deg) translateY(-3px); }
+    75%  { transform: rotate(-40deg) translateY(-4px); }
+    100% { transform: rotate(0deg); }
+  }
+
+  #right-arm.wave {
+    animation: arm-wave 0.55s ease-in-out 3;
+    transform-origin: top center;
+  }
+
+  /* ─── THINKING ─── */
+  @keyframes bmo-think {
+    0%, 100% { transform: translateY(0px); }
+    50%       { transform: translateY(-3px); }
+  }
+
+  #bmo-wrapper.thinking {
+    animation: bmo-think 1.5s ease-in-out infinite;
+  }
+
+  /* Thinking: left arm raises to chin */
+  @keyframes arm-think {
+    0%, 100% { transform: rotate(0deg); }
+    50%       { transform: rotate(30deg) translateY(-6px); }
+  }
+
+  #left-arm.thinking {
+    animation: arm-think 1.5s ease-in-out infinite;
+    transform-origin: top center;
+  }
+
+  /* Eyes look sideways during thinking */
+  @keyframes eye-look-side {
+    0%, 100% { transform: translateX(0); }
+    50%       { transform: translateX(3px); }
+  }
+
+  #bmo-wrapper.thinking #left-eye,
+  #bmo-wrapper.thinking #right-eye {
+    animation: eye-look-side 1.5s ease-in-out infinite;
+  }
+
+  /* ─── SPEAKING ─── */
+  @keyframes bmo-speak-bob {
+    0%, 100% { transform: translateY(0px); }
+    25%       { transform: translateY(-3px); }
+    75%       { transform: translateY(-1px); }
+  }
+
+  #bmo-wrapper.speaking {
+    animation: bmo-speak-bob 0.35s ease-in-out infinite;
+  }
+
+  @keyframes arm-gesture-left {
+    0%, 100% { transform: rotate(0deg); }
+    30%       { transform: rotate(-12deg); }
+    60%       { transform: rotate(8deg); }
+  }
+
+  @keyframes arm-gesture-right {
+    0%, 100% { transform: rotate(0deg); }
+    30%       { transform: rotate(12deg); }
+    60%       { transform: rotate(-8deg); }
+  }
+
+  #bmo-wrapper.speaking #left-arm {
+    animation: arm-gesture-left 0.6s ease-in-out infinite;
+    transform-origin: top center;
+  }
+
+  #bmo-wrapper.speaking #right-arm {
+    animation: arm-gesture-right 0.6s ease-in-out 0.1s infinite;
+    transform-origin: top center;
+  }
+
+  /* Screen glow on speaking */
+  @keyframes screen-glow {
+    0%, 100% { filter: brightness(1) drop-shadow(0 0 3px rgba(120,230,220,0.3)); }
+    50%       { filter: brightness(1.12) drop-shadow(0 0 8px rgba(120,230,220,0.6)); }
+  }
+
+  #bmo-wrapper.speaking #screen {
+    animation: screen-glow 0.5s ease-in-out infinite;
+  }
+
+  /* ─── HAPPY ─── */
+  @keyframes bmo-bounce {
+    0%, 100% { transform: translateY(0px) scale(1); }
+    30%       { transform: translateY(-12px) scale(1.03); }
+    50%       { transform: translateY(-8px) scale(1.02); }
+    70%       { transform: translateY(-14px) scale(1.03); }
+  }
+
+  #bmo-wrapper.happy {
+    animation: bmo-bounce 0.6s ease-in-out 2;
+  }
+
+  @keyframes arms-happy {
+    0%, 100% { transform: rotate(0deg); }
+    40%       { transform: rotate(-50deg) translateY(-8px); }
+    70%       { transform: rotate(-40deg) translateY(-6px); }
+  }
+
+  #bmo-wrapper.happy #left-arm {
+    animation: arms-happy 0.6s ease-in-out 2 0s;
+    transform-origin: top center;
+  }
+
+  #bmo-wrapper.happy #right-arm {
+    animation: arms-happy 0.6s ease-in-out 2 0.05s;
+    transform-origin: top center;
+    transform: scaleX(-1);
+  }
+
+  /* ─── EYE BLINK ─── */
+  @keyframes blink {
+    0%, 90%, 100% { transform: scaleY(1); }
+    95%            { transform: scaleY(0.05); }
+  }
+
+  .blinking {
+    animation: blink 0.18s ease-in-out;
+    transform-origin: center;
+  }
+
+  /* ─── MOUTH SPEAKING CYCLE ─── */
+  /* Handled via JS class toggling + SVG path swaps */
+
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- Speech bubble -->
+  <div id="speech-bubble"></div>
+
+  <!-- BMO Character -->
+  <div id="bmo-wrapper">
+    <svg viewBox="0 0 200 260" xmlns="http://www.w3.org/2000/svg" id="bmo-svg">
+      <defs>
+        <!-- Screen gradient -->
+        <linearGradient id="screenGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%"   stop-color="#b8f0e8" />
+          <stop offset="100%" stop-color="#7de0d0" />
+        </linearGradient>
+        <!-- Body gradient -->
+        <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="10%" y2="100%">
+          <stop offset="0%"   stop-color="#48c9b0" />
+          <stop offset="100%" stop-color="#1abc9c" />
+        </linearGradient>
+        <!-- Screen shine -->
+        <linearGradient id="shineGrad" x1="0%" y1="0%" x2="30%" y2="100%">
+          <stop offset="0%"   stop-color="rgba(255,255,255,0.35)" />
+          <stop offset="100%" stop-color="rgba(255,255,255,0)" />
+        </linearGradient>
+        <!-- Body shadow bottom -->
+        <linearGradient id="bottomShade" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%"   stop-color="rgba(0,0,0,0)" />
+          <stop offset="100%" stop-color="rgba(0,0,0,0.12)" />
+        </linearGradient>
+
+        <!-- Drop shadow filter for body -->
+        <filter id="bodyDrop" x="-15%" y="-10%" width="130%" height="130%">
+          <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="rgba(0,0,0,0.22)" />
+        </filter>
+      </defs>
+
+      <!-- ══════════════════════════════════════════
+           LEFT ARM
+      ══════════════════════════════════════════ -->
+      <g id="left-arm">
+        <!-- Upper arm joint -->
+        <ellipse cx="30" cy="108" rx="9" ry="9" fill="#1abc9c" stroke="#17a589" stroke-width="1.5" />
+        <!-- Arm segment -->
+        <rect x="17" y="108" width="14" height="34" rx="7" fill="#48c9b0" stroke="#17a589" stroke-width="1.5" />
+        <!-- Hand/Mitt -->
+        <ellipse cx="24" cy="145" rx="10" ry="9" fill="#1abc9c" stroke="#17a589" stroke-width="1.5" />
+      </g>
+
+      <!-- ══════════════════════════════════════════
+           RIGHT ARM
+      ══════════════════════════════════════════ -->
+      <g id="right-arm">
+        <!-- Upper arm joint -->
+        <ellipse cx="170" cy="108" rx="9" ry="9" fill="#1abc9c" stroke="#17a589" stroke-width="1.5" />
+        <!-- Arm segment -->
+        <rect x="169" y="108" width="14" height="34" rx="7" fill="#48c9b0" stroke="#17a589" stroke-width="1.5" />
+        <!-- Hand/Mitt -->
+        <ellipse cx="176" cy="145" rx="10" ry="9" fill="#1abc9c" stroke="#17a589" stroke-width="1.5" />
+      </g>
+
+      <!-- ══════════════════════════════════════════
+           MAIN BODY
+      ══════════════════════════════════════════ -->
+      <g id="body" filter="url(#bodyDrop)">
+        <!-- Body shape -->
+        <rect x="35" y="25" width="130" height="200" rx="20" ry="20" fill="url(#bodyGrad)" stroke="#17a589" stroke-width="2" />
+        <!-- Bottom shade overlay -->
+        <rect x="35" y="150" width="130" height="75" rx="0" ry="0" fill="url(#bottomShade)" />
+        <rect x="35" y="205" width="130" height="20" rx="0" ry="20" fill="url(#bottomShade)" />
+
+        <!-- ── SCREEN AREA ── -->
+        <g id="screen">
+          <!-- Screen bezel/frame -->
+          <rect x="50" y="38" width="100" height="90" rx="10" fill="#0a2a26" />
+          <!-- Screen display -->
+          <rect x="54" y="42" width="92" height="82" rx="8" fill="url(#screenGrad)" />
+          <!-- Screen shine -->
+          <rect x="54" y="42" width="92" height="82" rx="8" fill="url(#shineGrad)" />
+
+          <!-- ── LEFT EYE ── -->
+          <g id="left-eye">
+            <!-- Eye white / pupil base -->
+            <rect x="65" y="58" width="22" height="20" rx="4" fill="#ffffff" />
+            <!-- Pixel dots for eye -->
+            <rect x="69" y="62" width="5" height="5" rx="1" fill="#1a1a2e" />
+            <rect x="74" y="62" width="5" height="5" rx="1" fill="#1a1a2e" />
+            <rect x="69" y="67" width="5" height="5" rx="1" fill="#1a1a2e" />
+            <rect x="74" y="67" width="5" height="5" rx="1" fill="#1a1a2e" />
+            <!-- Eye shine pixel -->
+            <rect x="78" y="63" width="3" height="3" rx="0.5" fill="rgba(255,255,255,0.8)" />
+          </g>
+
+          <!-- ── RIGHT EYE ── -->
+          <g id="right-eye">
+            <rect x="113" y="58" width="22" height="20" rx="4" fill="#ffffff" />
+            <rect x="117" y="62" width="5" height="5" rx="1" fill="#1a1a2e" />
+            <rect x="122" y="62" width="5" height="5" rx="1" fill="#1a1a2e" />
+            <rect x="117" y="67" width="5" height="5" rx="1" fill="#1a1a2e" />
+            <rect x="122" y="67" width="5" height="5" rx="1" fill="#1a1a2e" />
+            <rect x="126" y="63" width="3" height="3" rx="0.5" fill="rgba(255,255,255,0.8)" />
+          </g>
+
+          <!-- ── MOUTH (idle: closed line) ── -->
+          <g id="mouth">
+            <!-- Mouth shape — JS swaps content -->
+            <path id="mouth-path" d="M82,98 Q100,102 118,98" stroke="#1a1a2e" stroke-width="2.5" fill="none" stroke-linecap="round" />
+          </g>
+        </g>
+
+        <!-- ── SPEAKER GRILLE (below screen) ── -->
+        <g id="speaker">
+          <line x1="62" y1="140" x2="138" y2="140" stroke="#17a589" stroke-width="2" stroke-linecap="round" />
+          <line x1="62" y1="147" x2="138" y2="147" stroke="#17a589" stroke-width="2" stroke-linecap="round" />
+          <line x1="62" y1="154" x2="138" y2="154" stroke="#17a589" stroke-width="2" stroke-linecap="round" />
+        </g>
+
+        <!-- ── D-PAD (left side of body) ── -->
+        <g id="dpad">
+          <!-- Center of D-pad at (68, 178) -->
+          <!-- Horizontal bar -->
+          <rect x="57" y="173" width="22" height="10" rx="2" fill="#0e4d44" stroke="#17a589" stroke-width="1" />
+          <!-- Vertical bar -->
+          <rect x="63" y="167" width="10" height="22" rx="2" fill="#0e4d44" stroke="#17a589" stroke-width="1" />
+          <!-- Center nub -->
+          <rect x="65" y="175" width="6" height="6" rx="1" fill="#1abc9c" />
+          <!-- Arrow hints -->
+          <polygon points="59,178 62,175 62,181" fill="#17a589" />
+          <polygon points="77,178 74,175 74,181" fill="#17a589" />
+          <polygon points="68,169 65,172 71,172" fill="#17a589" />
+          <polygon points="68,187 65,184 71,184" fill="#17a589" />
+        </g>
+
+        <!-- ── BUTTONS (right side, triangle + circle) ── -->
+        <g id="buttons">
+          <!-- Triangle button -->
+          <circle cx="125" cy="172" r="7" fill="#0e4d44" stroke="#17a589" stroke-width="1" />
+          <polygon points="125,167.5 121.5,174.5 128.5,174.5" fill="#c0392b" />
+
+          <!-- Circle button -->
+          <circle cx="143" cy="180" r="7" fill="#0e4d44" stroke="#17a589" stroke-width="1" />
+          <circle cx="143" cy="180" r="4" fill="none" stroke="#e74c3c" stroke-width="1.5" />
+
+          <!-- Square button (extra, Adventure Time BMO has more buttons) -->
+          <circle cx="110" cy="180" r="7" fill="#0e4d44" stroke="#17a589" stroke-width="1" />
+          <rect x="106.5" y="176.5" width="7" height="7" rx="1" fill="none" stroke="#3498db" stroke-width="1.5" />
+
+          <!-- X button -->
+          <circle cx="143" cy="162" r="7" fill="#0e4d44" stroke="#17a589" stroke-width="1" />
+          <line x1="139.5" y1="158.5" x2="146.5" y2="165.5" stroke="#27ae60" stroke-width="1.5" stroke-linecap="round" />
+          <line x1="146.5" y1="158.5" x2="139.5" y2="165.5" stroke="#27ae60" stroke-width="1.5" stroke-linecap="round" />
+        </g>
+
+        <!-- ── POWER BUTTON + CARD SLOT ── -->
+        <g id="power-details">
+          <!-- Power button (top right area) -->
+          <circle cx="153" cy="38" rx="5" r="5" fill="#0e4d44" stroke="#17a589" stroke-width="1" />
+          <circle cx="153" cy="38" r="3" fill="#e74c3c" />
+
+          <!-- Card slot (left side, top) -->
+          <rect x="35" y="55" width="5" height="18" rx="2" fill="#0a2a26" stroke="#17a589" stroke-width="0.5" />
+
+          <!-- Headphone jack / port (right side) -->
+          <rect x="160" y="55" width="5" height="10" rx="2" fill="#0a2a26" stroke="#17a589" stroke-width="0.5" />
+        </g>
+      </g>
+
+      <!-- ══════════════════════════════════════════
+           LEGS
+      ══════════════════════════════════════════ -->
+      <g id="legs">
+        <!-- Left leg -->
+        <rect x="68" y="220" width="22" height="32" rx="10" fill="#1abc9c" stroke="#17a589" stroke-width="1.5" />
+        <!-- Left foot -->
+        <ellipse cx="79" cy="254" rx="15" ry="7" fill="#17a589" />
+
+        <!-- Right leg -->
+        <rect x="110" y="220" width="22" height="32" rx="10" fill="#1abc9c" stroke="#17a589" stroke-width="1.5" />
+        <!-- Right foot -->
+        <ellipse cx="121" cy="254" rx="15" ry="7" fill="#17a589" />
+      </g>
+    </svg>
+  </div>
+</div>
+
+<script src="bmo.js"></script>
+</body>
+</html>
