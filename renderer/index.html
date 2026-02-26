@@ -72,8 +72,8 @@
   /* ─── BMO container ─── */
   #bmo-wrapper {
     position: relative;
-    width: 280px;
-    height: 420px;
+    width: 300px;
+    height: 400px;
     -webkit-app-region: drag;
     cursor: grab;
   }
@@ -82,28 +82,34 @@
 
   /* ─── IDLE float ─── */
   @keyframes bmo-float {
-    0%, 100% { transform: translateY(0px) scaleY(1); }
-    40%      { transform: translateY(-7px) scaleY(1.01); }
-    60%      { transform: translateY(-5px) scaleY(1.01); }
+    0%, 100% { transform: translateY(0px); }
+    40%      { transform: translateY(-7px); }
+    60%      { transform: translateY(-5px); }
   }
   #bmo-wrapper {
     animation: bmo-float 4s ease-in-out infinite;
     transform-origin: center bottom;
   }
 
-  /* ─── WAVE ─── */
+  /* ─── WAVE (left arm — the one that goes up) ─── */
   @keyframes arm-wave {
     0%   { transform: rotate(0deg); }
-    15%  { transform: rotate(-60deg); }
-    30%  { transform: rotate(-20deg); }
-    45%  { transform: rotate(-65deg); }
-    60%  { transform: rotate(-25deg); }
-    75%  { transform: rotate(-60deg); }
+    15%  { transform: rotate(30deg); }
+    30%  { transform: rotate(5deg); }
+    45%  { transform: rotate(35deg); }
+    60%  { transform: rotate(10deg); }
+    75%  { transform: rotate(30deg); }
     100% { transform: rotate(0deg); }
   }
+  #left-arm.wave {
+    animation: arm-wave 0.6s ease-in-out 3;
+    transform-origin: 105px 220px;
+  }
+
+  /* ─── WAVE (right arm) ─── */
   #right-arm.wave {
     animation: arm-wave 0.6s ease-in-out 3;
-    transform-origin: 170px 100px;
+    transform-origin: 295px 240px;
   }
 
   /* ─── THINKING ─── */
@@ -115,16 +121,16 @@
 
   @keyframes arm-think {
     0%, 100% { transform: rotate(0deg); }
-    50%      { transform: rotate(40deg) translateY(-10px); }
+    50%      { transform: rotate(25deg); }
   }
   #left-arm.thinking {
     animation: arm-think 1.5s ease-in-out infinite;
-    transform-origin: 30px 100px;
+    transform-origin: 105px 220px;
   }
 
   @keyframes eye-look-side {
     0%, 100% { transform: translateX(0); }
-    50%      { transform: translateX(3px); }
+    50%      { transform: translateX(4px); }
   }
   #bmo-wrapper.thinking #left-eye,
   #bmo-wrapper.thinking #right-eye {
@@ -134,33 +140,33 @@
   /* ─── SPEAKING ─── */
   @keyframes bmo-speak-bob {
     0%, 100% { transform: translateY(0px); }
-    25%      { transform: translateY(-3px); }
+    25%      { transform: translateY(-4px); }
     75%      { transform: translateY(-1px); }
   }
   #bmo-wrapper.speaking { animation: bmo-speak-bob 0.35s ease-in-out infinite; }
 
   @keyframes arm-gesture-left {
     0%, 100% { transform: rotate(0deg); }
-    30%      { transform: rotate(-18deg); }
-    60%      { transform: rotate(12deg); }
+    30%      { transform: rotate(15deg); }
+    60%      { transform: rotate(-8deg); }
   }
   @keyframes arm-gesture-right {
     0%, 100% { transform: rotate(0deg); }
-    30%      { transform: rotate(18deg); }
-    60%      { transform: rotate(-12deg); }
+    30%      { transform: rotate(-10deg); }
+    60%      { transform: rotate(5deg); }
   }
   #bmo-wrapper.speaking #left-arm {
     animation: arm-gesture-left 0.6s ease-in-out infinite;
-    transform-origin: 30px 100px;
+    transform-origin: 105px 220px;
   }
   #bmo-wrapper.speaking #right-arm {
     animation: arm-gesture-right 0.6s ease-in-out 0.1s infinite;
-    transform-origin: 170px 100px;
+    transform-origin: 295px 240px;
   }
 
   @keyframes screen-glow {
-    0%, 100% { filter: brightness(1) drop-shadow(0 0 3px rgba(120,230,200,0.3)); }
-    50%      { filter: brightness(1.1) drop-shadow(0 0 8px rgba(120,230,200,0.6)); }
+    0%, 100% { filter: drop-shadow(0 0 2px rgba(209,242,220,0.3)); }
+    50%      { filter: drop-shadow(0 0 10px rgba(209,242,220,0.6)); }
   }
   #bmo-wrapper.speaking #screen { animation: screen-glow 0.5s ease-in-out infinite; }
 
@@ -168,28 +174,28 @@
   @keyframes bmo-bounce {
     0%, 100% { transform: translateY(0px) scale(1); }
     30%      { transform: translateY(-14px) scale(1.03); }
-    50%      { transform: translateY(-8px) scale(1.02); }
+    50%      { transform: translateY(-8px) scale(1.01); }
     70%      { transform: translateY(-16px) scale(1.03); }
   }
   #bmo-wrapper.happy { animation: bmo-bounce 0.6s ease-in-out 2; }
 
   @keyframes arms-happy-left {
     0%, 100% { transform: rotate(0deg); }
-    40%      { transform: rotate(60deg) translateY(-12px); }
-    70%      { transform: rotate(50deg) translateY(-10px); }
+    40%      { transform: rotate(40deg); }
+    70%      { transform: rotate(30deg); }
   }
   @keyframes arms-happy-right {
     0%, 100% { transform: rotate(0deg); }
-    40%      { transform: rotate(-60deg) translateY(-12px); }
-    70%      { transform: rotate(-50deg) translateY(-10px); }
+    40%      { transform: rotate(-30deg); }
+    70%      { transform: rotate(-20deg); }
   }
   #bmo-wrapper.happy #left-arm {
     animation: arms-happy-left 0.6s ease-in-out 2;
-    transform-origin: 30px 100px;
+    transform-origin: 105px 220px;
   }
   #bmo-wrapper.happy #right-arm {
     animation: arms-happy-right 0.6s ease-in-out 2 0.05s;
-    transform-origin: 170px 100px;
+    transform-origin: 295px 240px;
   }
 
   /* ─── BLINK ─── */
@@ -208,130 +214,89 @@
   <div id="speech-bubble"></div>
 
   <div id="bmo-wrapper">
-    <svg viewBox="0 0 200 380" xmlns="http://www.w3.org/2000/svg" id="bmo-svg">
-      <defs>
-        <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stop-color="#5ee8ca" />
-          <stop offset="100%" stop-color="#4cd4b4" />
-        </linearGradient>
-        <linearGradient id="sideGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#3cb89a" />
-          <stop offset="100%" stop-color="#34a88c" />
-        </linearGradient>
-        <linearGradient id="screenGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stop-color="#aaf0dc" />
-          <stop offset="100%" stop-color="#8ae8cc" />
-        </linearGradient>
-        <linearGradient id="topGrad" x1="0%" y1="100%" x2="0%" y2="0%">
-          <stop offset="0%" stop-color="#5ee8ca" />
-          <stop offset="100%" stop-color="#70f0d6" />
-        </linearGradient>
-      </defs>
-
-      <!-- ═══ LEFT ARM (long, noodle-like, hangs to mid-thigh) ═══ -->
-      <g id="left-arm">
-        <path d="M28,104 Q10,120 6,150 Q2,175 10,195" stroke="#42c8a6" stroke-width="9" fill="none" stroke-linecap="round"/>
-        <ellipse cx="11" cy="198" rx="8" ry="6" fill="#4cd4b4" stroke="#2c9a7e" stroke-width="1.5"/>
-      </g>
-
-      <!-- ═══ RIGHT ARM (long, noodle-like) ═══ -->
-      <g id="right-arm">
-        <path d="M172,104 Q190,120 194,150 Q198,175 190,195" stroke="#42c8a6" stroke-width="9" fill="none" stroke-linecap="round"/>
-        <ellipse cx="189" cy="198" rx="8" ry="6" fill="#4cd4b4" stroke="#2c9a7e" stroke-width="1.5"/>
-      </g>
-
-      <!-- ═══ BODY (3D box perspective) ═══ -->
-      <g id="body">
-        <!-- Right side panel (wider for better 3D) -->
-        <path d="M155,22 L185,10 L185,238 L155,250 Z" fill="url(#sideGrad)" stroke="#2c9a7e" stroke-width="2"/>
-
-        <!-- "BMO" text on side -->
-        <text x="170" y="85" font-family="'Arial Black', 'Impact', sans-serif" font-weight="900" font-size="22" fill="#1a6650" text-anchor="middle">B</text>
-        <text x="170" y="115" font-family="'Arial Black', 'Impact', sans-serif" font-weight="900" font-size="22" fill="#1a6650" text-anchor="middle">M</text>
-        <text x="170" y="145" font-family="'Arial Black', 'Impact', sans-serif" font-weight="900" font-size="22" fill="#1a6650" text-anchor="middle">O</text>
-
-        <!-- Speaker dots on side (4 rows × 3 cols) -->
-        <g fill="#1a6650">
-          <circle cx="163" cy="162" r="2.5"/><circle cx="170" cy="162" r="2.5"/><circle cx="177" cy="162" r="2.5"/>
-          <circle cx="163" cy="170" r="2.5"/><circle cx="170" cy="170" r="2.5"/><circle cx="177" cy="170" r="2.5"/>
-          <circle cx="163" cy="178" r="2.5"/><circle cx="170" cy="178" r="2.5"/><circle cx="177" cy="178" r="2.5"/>
-          <circle cx="163" cy="186" r="2.5"/><circle cx="170" cy="186" r="2.5"/><circle cx="177" cy="186" r="2.5"/>
-          <circle cx="163" cy="194" r="2.5"/><circle cx="170" cy="194" r="2.5"/><circle cx="177" cy="194" r="2.5"/>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500" id="bmo-svg">
+      <!-- ═══ LIMBS (behind body) ═══ -->
+      <g id="limbs">
+        <!-- Left arm (raised one) -->
+        <g id="left-arm">
+          <path d="M 105 220 C 70 210, 50 170, 60 140" fill="none" stroke="#1D2D2A" stroke-width="8" stroke-linecap="round" />
         </g>
 
-        <!-- Top face (3D perspective) -->
-        <path d="M28,22 L58,10 L185,10 L155,22 Z" fill="url(#topGrad)" stroke="#2c9a7e" stroke-width="2"/>
-
-        <!-- Front face -->
-        <rect x="28" y="22" width="127" height="228" rx="8" fill="url(#bodyGrad)" stroke="#2c9a7e" stroke-width="2.5"/>
-
-        <!-- ── SCREEN ── -->
-        <g id="screen">
-          <!-- Screen bezel (thinner) -->
-          <rect x="40" y="34" width="103" height="88" rx="5" fill="#3aaa8a"/>
-          <!-- Screen display -->
-          <rect x="44" y="38" width="95" height="80" rx="3" fill="url(#screenGrad)"/>
-
-          <!-- ── LEFT EYE (simple oval dot) ── -->
-          <g id="left-eye">
-            <ellipse cx="72" cy="70" rx="4.5" ry="5.5" fill="#2c3e50"/>
-          </g>
-
-          <!-- ── RIGHT EYE (simple oval dot) ── -->
-          <g id="right-eye">
-            <ellipse cx="112" cy="70" rx="4.5" ry="5.5" fill="#2c3e50"/>
-          </g>
-
-          <!-- ── MOUTH ── -->
-          <g id="mouth">
-            <path id="mouth-path" d="M78,96 Q92,104 108,96" stroke="#2c3e50" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-          </g>
+        <!-- Right arm (hanging) -->
+        <g id="right-arm">
+          <path d="M 295 240 C 330 250, 350 270, 340 310" fill="none" stroke="#1D2D2A" stroke-width="8" stroke-linecap="round" />
         </g>
 
-        <!-- ── Small dark dot (indicator) ── -->
-        <circle cx="130" cy="132" r="4" fill="#1a6650"/>
-
-        <!-- ── CARD SLOT ── -->
-        <rect x="52" y="134" width="65" height="9" rx="3" fill="#1a4a3a" stroke="#2c9a7e" stroke-width="0.8"/>
-
-        <!-- ── D-PAD (yellow, bigger) ── -->
-        <g id="dpad">
-          <rect x="44" y="166" width="32" height="12" rx="2.5" fill="#f0c030" stroke="#d4a820" stroke-width="1.2"/>
-          <rect x="54" y="156" width="12" height="32" rx="2.5" fill="#f0c030" stroke="#d4a820" stroke-width="1.2"/>
-        </g>
-
-        <!-- ── TRIANGLE button (blue, bigger) ── -->
-        <polygon points="104,160 96,174 112,174" fill="#4fb8e0" stroke="#3a9cc4" stroke-width="1.2"/>
-
-        <!-- ── CIRCLE button (green, bigger) ── -->
-        <circle cx="126" cy="168" r="6.5" fill="#5cc460" stroke="#48a84c" stroke-width="1.2"/>
-
-        <!-- ── BIG RED BUTTON ── -->
-        <circle cx="118" cy="192" r="11" fill="#e74c3c" stroke="#c0392b" stroke-width="1.8"/>
-        <circle cx="115" cy="189" r="4" fill="rgba(255,255,255,0.25)"/>
-
-        <!-- ── Bottom speaker grilles (two pill shapes) ── -->
-        <g fill="#2c9a7e">
-          <rect x="54" y="216" width="22" height="5" rx="2.5"/>
-          <rect x="82" y="216" width="22" height="5" rx="2.5"/>
-        </g>
-
-        <!-- ── Headphone jack on right side ── -->
-        <circle cx="155" cy="210" r="4" fill="#1a4a3a" stroke="#2c9a7e" stroke-width="1"/>
-        <path d="M155,214 Q158,225 152,230" stroke="#2c9a7e" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-      </g>
-
-      <!-- ═══ LEGS (longer, thinner, ~40% of total height) ═══ -->
-      <g id="legs">
         <!-- Left leg -->
-        <rect x="58" y="248" width="12" height="70" rx="6" fill="#3cb89a" stroke="#2c9a7e" stroke-width="1.5"/>
-        <!-- Left foot (small nub) -->
-        <ellipse cx="64" cy="320" rx="11" ry="5" fill="#2c9a7e"/>
+        <path d="M 150 375 L 150 440" fill="none" stroke="#1D2D2A" stroke-width="8" stroke-linecap="round" />
+        <ellipse cx="140" cy="442" rx="14" ry="7" fill="#1D2D2A" />
 
         <!-- Right leg -->
-        <rect x="122" y="248" width="12" height="70" rx="6" fill="#3cb89a" stroke="#2c9a7e" stroke-width="1.5"/>
-        <!-- Right foot (small nub) -->
-        <ellipse cx="128" cy="320" rx="11" ry="5" fill="#2c9a7e"/>
+        <path d="M 250 375 L 250 440" fill="none" stroke="#1D2D2A" stroke-width="8" stroke-linecap="round" />
+        <ellipse cx="260" cy="442" rx="14" ry="7" fill="#1D2D2A" />
+      </g>
+
+      <!-- ═══ BODY ═══ -->
+      <g id="body">
+        <rect x="100" y="100" width="200" height="280" rx="20" fill="#53C4B6" stroke="#1D2D2A" stroke-width="8" />
+        <!-- Inner highlight border -->
+        <rect x="108" y="108" width="184" height="264" rx="14" fill="none" stroke="#7BE3D3" stroke-width="4" />
+      </g>
+
+      <!-- ═══ SCREEN ═══ -->
+      <g id="screen">
+        <!-- Screen bezel -->
+        <rect x="116" y="116" width="168" height="128" rx="12" fill="#2B473F" />
+        <!-- Screen display -->
+        <rect x="120" y="120" width="160" height="120" rx="8" fill="#D1F2DC" />
+        <!-- Screen shine -->
+        <polygon points="120,155 165,120 185,120 120,170" fill="#FFFFFF" opacity="0.3" />
+
+        <!-- Eye highlights (lighter circles behind pupils) -->
+        <circle cx="145" cy="180" r="8" fill="#8CD6AB" opacity="0.8" />
+        <circle cx="255" cy="180" r="8" fill="#8CD6AB" opacity="0.8" />
+
+        <!-- ── LEFT EYE ── -->
+        <g id="left-eye">
+          <circle cx="160" cy="175" r="6" fill="#1D2D2A" />
+        </g>
+
+        <!-- ── RIGHT EYE ── -->
+        <g id="right-eye">
+          <circle cx="240" cy="175" r="6" fill="#1D2D2A" />
+        </g>
+
+        <!-- ── MOUTH ── -->
+        <g id="mouth">
+          <path id="mouth-path" d="M 185 195 Q 200 210 215 195" fill="none" stroke="#1D2D2A" stroke-width="5" stroke-linecap="round" />
+        </g>
+      </g>
+
+      <!-- ═══ DETAILS ═══ -->
+      <g id="details">
+        <!-- Card slot -->
+        <rect x="130" y="260" width="140" height="8" rx="4" fill="#1D2D2A" />
+        <rect x="132" y="262" width="136" height="2" rx="1" fill="#3D5A50" />
+
+        <!-- D-pad (yellow) -->
+        <path d="M 143 293 h 14 v 10 h 10 v 14 h -10 v 10 h -14 v -10 h -10 v -14 h 10 z" fill="#FBD109" stroke="#1D2D2A" stroke-width="6" stroke-linejoin="round" />
+
+        <!-- Triangle button (teal) -->
+        <polygon points="250,278 263,300 237,300" fill="#44E5CF" stroke="#1D2D2A" stroke-width="6" stroke-linejoin="round" />
+
+        <!-- Circle button (green) -->
+        <circle cx="235" cy="330" r="10" fill="#69D13E" stroke="#1D2D2A" stroke-width="6" />
+
+        <!-- Big red button -->
+        <circle cx="270" cy="315" r="14" fill="#ED2C41" stroke="#1D2D2A" stroke-width="6" />
+
+        <!-- Bottom speaker dots -->
+        <rect x="180" y="340" width="16" height="8" rx="4" fill="#1D2D2A" />
+        <rect x="204" y="340" width="16" height="8" rx="4" fill="#1D2D2A" />
+
+        <!-- Bottom speaker grilles -->
+        <rect x="135" y="355" width="28" height="12" rx="4" fill="#1D2D2A" />
+        <rect x="237" y="355" width="28" height="12" rx="4" fill="#1D2D2A" />
       </g>
     </svg>
   </div>

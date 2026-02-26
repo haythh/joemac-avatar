@@ -15,14 +15,14 @@ const screen       = document.getElementById('screen');
 
 // ─── Mouth Shapes (SVG path data) ────────────────
 const MOUTH_SHAPES = {
-  closed:  'M78,96 Q92,104 108,96',                                             // gentle closed smile
-  open:    'M80,92 Q92,108 106,92 Z',                                           // open mouth (dark inside)
-  o:       'M86,90 Q92,102 98,90 Q104,82 98,80 Q92,76 86,80 Q80,82 86,90',    // round "O" shape
-  wide:    'M76,92 Q92,112 110,92 Z',                                           // wide open BMO mouth
-  smile:   'M76,94 Q92,108 110,94',                                             // big happy smile
-  happy:   'M76,92 Q92,108 110,92 Q92,114 76,92',                              // open grin with bottom curve
-  think:   'M82,98 L104,98',                                                    // flat thinking line
-  sad:     'M80,102 Q92,94 106,102',                                            // slight frown
+  closed:  'M 185 195 Q 200 210 215 195',                                       // gentle closed smile
+  open:    'M 180 192 Q 200 215 220 192 Z',                                     // open mouth (dark inside)
+  o:       'M 192 190 Q 200 205 208 190 Q 215 182 208 178 Q 200 174 192 178 Q 185 182 192 190', // round "O"
+  wide:    'M 175 190 Q 200 220 225 190 Z',                                     // wide open BMO mouth
+  smile:   'M 180 195 Q 200 215 220 195',                                       // big happy smile
+  happy:   'M 178 192 Q 200 218 222 192 Q 200 222 178 192',                    // open grin with bottom curve
+  think:   'M 188 198 L 212 198',                                               // flat thinking line
+  sad:     'M 185 205 Q 200 195 215 205',                                       // slight frown
 };
 
 // ─── State ────────────────────────────────────────
