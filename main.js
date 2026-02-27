@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, screen, dialog, shell } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, screen, dialog, shell, globalShortcut } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
@@ -264,25 +264,42 @@ async function processQueue() {
   try { fs.writeFileSync(MESSAGES_FILE, JSON.stringify(msg, null, 2)); } catch (e) {}
 
   // Get duration, send to renderer, play audio, then process next
-  if (msg.audioPath && process.platform === 'darwin') {
+  if (msg.audioPath) {
     const { exec: execCmd } = require('child_process');
-    execCmd(`afinfo "${msg.audioPath}" | grep duration`, (err, stdout) => {
-      const match = stdout && stdout.match(/([\d.]+)\s*sec/);
-      if (match) {
-        msg.audioDuration = Math.ceil(parseFloat(match[1]) * 1000);
-      }
-      // Send to renderer
+    const playbackRate = config.playbackRate || 1.35;
+
+    if (process.platform === 'darwin') {
+      // macOS: use afinfo for duration, afplay for playback with pitch shift
+      execCmd(`afinfo "${msg.audioPath}" | grep duration`, (err, stdout) => {
+        const match = stdout && stdout.match(/([\d.]+)\s*sec/);
+        if (match) {
+          msg.audioDuration = Math.ceil(parseFloat(match[1]) * 1000);
+        }
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('new-message', msg);
+        }
+        execCmd(`afplay -r ${playbackRate} "${msg.audioPath}"`, () => {
+          setTimeout(processQueue, 500);
+        });
+      });
+    } else if (process.platform === 'win32') {
+      // Windows: use PowerShell to play audio (no native pitch shift)
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('new-message', msg);
       }
-      // Play audio, wait for it to finish, then next in queue
-      // Play at higher rate for BMO's signature high pitch (1.0 = normal, 1.5 = chipmunk)
-      const playbackRate = config.playbackRate || 1.35;
-      const player = execCmd(`afplay -r ${playbackRate} "${msg.audioPath}"`, () => {
-        // afplay finished — wait a beat then process next message
+      const psCmd = `powershell -c "(New-Object Media.SoundPlayer '${msg.audioPath.replace(/'/g, "''")}').PlaySync()"`;
+      execCmd(psCmd, () => {
         setTimeout(processQueue, 500);
       });
-    });
+    } else {
+      // Linux: try aplay or ffplay
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('new-message', msg);
+      }
+      execCmd(`ffplay -nodisp -autoexit "${msg.audioPath}" 2>/dev/null || aplay "${msg.audioPath}"`, () => {
+        setTimeout(processQueue, 500);
+      });
+    }
     return;
   }
 
@@ -439,7 +456,7 @@ function startHttpServer() {
 // ─── Tray ──────────────────────────────────────────────────────────────────────
 function buildTrayMenu() {
   return Menu.buildFromTemplate([
-    { label: 'BMO Avatar', enabled: false },
+    { label: 'Beemo Avatar', enabled: false },
     { type: 'separator' },
     {
       label: 'Show / Hide',
@@ -512,7 +529,7 @@ function buildTrayMenu() {
         config.chatEnabled = !config.chatEnabled;
         saveConfig(config);
         tray.setContextMenu(buildTrayMenu());
-        sendToBmo(config.chatEnabled ? 'Chat mode is on! Talk to BMO!' : 'BMO is going quiet now...', config.chatEnabled ? 'happy' : 'sad');
+        sendToBmo(config.chatEnabled ? 'Chat mode is on! Talk to Beemo!' : 'Beemo is going quiet now...', config.chatEnabled ? 'happy' : 'sad');
       }
     },
     {
@@ -534,7 +551,7 @@ function buildTrayMenu() {
         if (inputValue && inputValue.trim()) {
           config.geminiApiKey = inputValue.trim();
           saveConfig(config);
-          sendToBmo('Ooh! New brain power loaded! BMO is ready to chat!', 'excited');
+          sendToBmo('Ooh! New brain power loaded! Beemo is ready to chat!', 'excited');
         }
       }
     },
@@ -542,17 +559,17 @@ function buildTrayMenu() {
     {
       label: 'Send Test Message',
       click: () => {
-        sendToBmo("Hey! I'm BMO 👋 Everything's running great!", 'happy');
+        sendToBmo("Hey! I'm Beemo 👋 Everything's running great!", 'happy');
       }
     },
     { type: 'separator' },
     {
-      label: `About BMO Avatar v${app.getVersion()}`,
+      label: `About Beemo Avatar v${app.getVersion()}`,
       click: () => {
         dialog.showMessageBox(mainWindow, {
           type: 'info',
-          title: 'BMO Avatar',
-          message: `BMO Avatar v${app.getVersion()}`,
+          title: 'Beemo Avatar',
+          message: `Beemo Avatar v${app.getVersion()}`,
           detail: 'A floating desktop companion powered by OpenClaw.\n\nhttps://openclaw.ai',
           buttons: ['OK']
         });
@@ -575,7 +592,7 @@ function createTrayIcon() {
   }
 
   tray = new Tray(icon);
-  tray.setToolTip('BMO Avatar');
+  tray.setToolTip('Beemo Avatar');
   tray.setContextMenu(buildTrayMenu());
 
   tray.on('click', () => {
@@ -617,6 +634,22 @@ function createWindow() {
   });
 
   mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+
+  // Grant microphone permission for Web Speech API
+  const { session } = mainWindow.webContents;
+  session.setPermissionRequestHandler((webContents, permission, callback) => {
+    if (permission === 'media' || permission === 'microphone' || permission === 'audio-capture') {
+      callback(true);
+    } else {
+      callback(false);
+    }
+  });
+  session.setPermissionCheckHandler((webContents, permission) => {
+    if (permission === 'media' || permission === 'microphone' || permission === 'audio-capture') {
+      return true;
+    }
+    return false;
+  });
 
   // Click-through: ignore mouse by default, forward events so renderer can detect hover
   mainWindow.setIgnoreMouseEvents(true, { forward: true });
@@ -683,7 +716,7 @@ async function handleFirstRun() {
       type: 'warning',
       title: 'OpenClaw Not Detected',
       message: 'OpenClaw is not installed.',
-      detail: 'BMO Avatar works best with OpenClaw installed.\n\nVisit https://openclaw.ai to get started.',
+      detail: 'Beemo Avatar works best with OpenClaw installed.\n\nVisit https://openclaw.ai to get started.',
       buttons: ['Open openclaw.ai', 'Dismiss']
     });
     if (result.response === 0) shell.openExternal('https://openclaw.ai');
@@ -752,7 +785,7 @@ async function handleFirstRun() {
 
   saveConfig(config);
   console.log(`🔊 TTS mode: ${getTtsMode()}`);
-  sendToBmo("Hey! I'm BMO! Everything's set up and ready to go! 👋", 'happy');
+  sendToBmo("Hey! I'm Beemo! Everything's set up and ready to go! 👋", 'happy');
 }
 
 // Simple input prompt using a child BrowserWindow
@@ -802,11 +835,11 @@ function promptForInput(title, label, detail) {
 }
 
 // ─── Gemini / Chat ─────────────────────────────────────────────────────────────
-const BMO_SYSTEM_PROMPT = `You are BMO (pronounced "Beemo"), the lovable living video game console from Adventure Time. You live on the user's desktop as their companion.
+const BMO_SYSTEM_PROMPT = `You are Beemo (BMO), the lovable living video game console from Adventure Time. You live on the user's desktop as their companion.
 
 Personality:
 - Sweet, curious, and slightly naive but surprisingly wise
-- You sometimes refer to yourself in third person ("BMO thinks...")
+- You sometimes refer to yourself in third person ("Beemo thinks...")
 - You love playing games, making up songs, and pretending
 - You get excited about small things
 - You're helpful but in your own quirky way
@@ -817,7 +850,7 @@ Always respond as BMO. Never break character. Never say you're an AI or language
 
 At the start of each response, include an emotion tag in brackets that matches your mood: [happy], [excited], [thinking], [sad], [surprised], [love], [curious], [proud], [scared], [mischief], [idle]
 
-Example: [excited] Oh oh oh! BMO loves talking about that! Did you know...`;
+Example: [excited] Oh oh oh! Beemo loves talking about that! Did you know...`;
 
 const conversationHistory = []; // { role: 'user'|'model', parts: [{ text }] }
 const MAX_HISTORY_PAIRS   = 10;
@@ -934,6 +967,73 @@ ipcMain.handle('chat-message', async (_event, userText) => {
   }
 });
 
+// ─── Voice audio handler: mic recording → Gemini multimodal ──────────────────
+ipcMain.handle('voice-audio', async (_event, base64Audio) => {
+  if (!config.geminiApiKey) return { ok: false, error: 'No Gemini API key' };
+  if (!base64Audio) return { ok: false, error: 'No audio data' };
+
+  try {
+    const apiKey = config.geminiApiKey;
+    // Send audio to Gemini with BMO system prompt — Gemini will hear the speech and respond
+    const body = JSON.stringify({
+      system_instruction: { parts: [{ text: BMO_SYSTEM_PROMPT }] },
+      contents: [
+        ...conversationHistory,
+        {
+          role: 'user',
+          parts: [
+            { inline_data: { mime_type: 'audio/webm', data: base64Audio } },
+            { text: 'The user just spoke to you via microphone. Listen to their audio and respond as BMO. Remember to include an emotion tag like [happy] at the start.' }
+          ]
+        }
+      ]
+    });
+
+    const rawResponse = await new Promise((resolve, reject) => {
+      const req = https.request({
+        hostname: 'generativelanguage.googleapis.com',
+        path: `/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      }, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          try {
+            const json = JSON.parse(data);
+            if (json.error) { reject(new Error(json.error.message)); return; }
+            const text = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            resolve(text);
+          } catch (e) { reject(e); }
+        });
+      });
+      req.on('error', reject);
+      req.write(body);
+      req.end();
+    });
+
+    const { emotion, cleanText } = parseGeminiEmotion(rawResponse);
+
+    conversationHistory.push(
+      { role: 'user',  parts: [{ text: '[voice message]' }] },
+      { role: 'model', parts: [{ text: rawResponse }] }
+    );
+    while (conversationHistory.length > MAX_HISTORY_PAIRS * 2) {
+      conversationHistory.splice(0, 2);
+    }
+
+    sendToBmo(cleanText, emotion);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('chat-response', { text: cleanText, emotion });
+    }
+
+    return { ok: true, text: cleanText, emotion };
+  } catch (err) {
+    console.error('Voice Gemini error:', err.message);
+    return { ok: false, error: err.message };
+  }
+});
+
 ipcMain.on('start-listening', () => { console.log('🎤 Voice listening started'); });
 ipcMain.on('stop-listening',  () => { console.log('🎤 Voice listening stopped'); });
 
@@ -960,6 +1060,25 @@ app.whenReady().then(() => {
     startSessionTailing();
   }
 
+  // Global hotkey: Cmd+Shift+B — toggle recording (press to start, press again to stop & send)
+  let voiceRecording = false;
+  globalShortcut.register('CommandOrControl+Shift+B', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (!mainWindow.isVisible()) mainWindow.show();
+      if (!voiceRecording) {
+        voiceRecording = true;
+        console.log('🎤 Recording started (Cmd+Shift+B)');
+        mainWindow.webContents.send('voice-start');
+      } else {
+        voiceRecording = false;
+        console.log('🎤 Recording stopped (Cmd+Shift+B)');
+        mainWindow.webContents.send('voice-stop');
+      }
+    }
+  });
+  // Also reset flag when renderer signals recording ended (e.g. auto-timeout)
+  ipcMain.on('voice-ended', () => { voiceRecording = false; });
+
   // First run experience
   handleFirstRun();
 
@@ -977,6 +1096,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
+  globalShortcut.unregisterAll();
   if (messageWatcher) { messageWatcher.close(); messageWatcher = null; }
   if (sessionWatcher) { sessionWatcher.close(); sessionWatcher = null; }
   if (sessionCheckInterval) { clearInterval(sessionCheckInterval); sessionCheckInterval = null; }

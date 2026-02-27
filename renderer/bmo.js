@@ -1164,7 +1164,7 @@ function startup() {
 
   setTimeout(() => {
     handleMessage({
-      text: "Hey! I'm JoeMac 👋",
+      text: "Hey! I'm Beemo! 👋",
       emotion: 'happy',
       timestamp: Date.now()
     });
@@ -1456,7 +1456,7 @@ bmoWrapper.addEventListener('click', () => {
 function showChatResponse(text) {
   if (!chatVisible) return;
   const preview = text.length > 65 ? text.substring(0, 62) + '…' : text;
-  chatResponseArea.textContent = `BMO: ${preview}`;
+  chatResponseArea.textContent = `Beemo: ${preview}`;
   chatResponseArea.classList.add('visible');
   // Auto-hide after 6s
   clearTimeout(showChatResponse._timer);
@@ -1486,7 +1486,7 @@ async function sendChatMessage() {
   sendBtn.disabled = true;
 
   // Show waiting hint in chat bar
-  chatResponseArea.textContent = 'BMO is thinking…';
+  chatResponseArea.textContent = 'Beemo is thinking…';
   chatResponseArea.classList.add('visible');
 
   if (window.joemac && window.joemac.sendChatMessage) {
@@ -1511,53 +1511,65 @@ if (window.joemac && window.joemac.onChatResponse) {
 }
 
 // ── Voice Input (Web Speech API) ────────────────────
-function initSpeechRecognition() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) {
-    micBtn.title    = 'Voice input not supported in this Electron build';
-    micBtn.disabled = true;
-    micBtn.style.opacity = '0.3';
-    return false;
+// ─── Voice Input via MediaRecorder → Gemini audio ─────────────────────────
+let mediaRecorder = null;
+let audioChunks = [];
+let micStream = null;
+let voiceAutoStopTimer = null;
+
+async function startVoiceInput() {
+  if (isListening) return;
+  
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (e) {
+    console.error('Mic access denied:', e);
+    showChatError('Mic permission denied');
+    return;
   }
 
-  recognition               = new SR();
-  recognition.continuous    = false;
-  recognition.interimResults = false;
-  recognition.lang          = 'en-US';
-
-  recognition.onresult = (e) => {
-    const transcript = e.results[0][0].transcript;
-    chatInput.value  = transcript;
-    stopVoiceInput();
-    sendChatMessage();
+  audioChunks = [];
+  mediaRecorder = new MediaRecorder(micStream, { mimeType: 'audio/webm' });
+  
+  mediaRecorder.ondataavailable = (e) => {
+    if (e.data.size > 0) audioChunks.push(e.data);
   };
 
-  recognition.onerror = (e) => {
-    console.warn('Speech error:', e.error);
-    stopVoiceInput();
-    if (e.error === 'not-allowed') {
-      showChatError('Mic permission denied');
-    } else if (e.error === 'no-speech') {
-      showChatError('No speech detected');
-    }
+  mediaRecorder.onstop = async () => {
+    // Stop mic stream
+    if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+    
+    if (audioChunks.length === 0) return;
+    
+    const blob = new Blob(audioChunks, { type: 'audio/webm' });
+    audioChunks = [];
+    
+    // Convert blob to base64 and send to main process for Gemini transcription
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64 = reader.result.split(',')[1];
+      chatInput.placeholder = 'Beemo is thinking…';
+      chatInput.disabled = true;
+      
+      if (window.joemac && window.joemac.sendVoiceAudio) {
+        const result = await window.joemac.sendVoiceAudio(base64);
+        chatInput.disabled = false;
+        chatInput.placeholder = 'Talk to Beemo…';
+        if (result && result.ok) {
+          // Response already handled by sendToBmo in main process
+        } else {
+          showChatError(result?.error || 'Voice failed');
+        }
+      }
+    };
+    reader.readAsDataURL(blob);
   };
-
-  recognition.onend = () => {
-    if (isListening) stopVoiceInput();
-  };
-
-  return true;
-}
-
-function startVoiceInput() {
-  if (!recognition && !initSpeechRecognition()) return;
-  if (isListening) return;
 
   isListening = true;
   micBtn.classList.add('listening');
-  micBtn.textContent       = '🔴';
-  chatInput.placeholder    = 'Listening…';
-  chatInput.disabled       = true;
+  micBtn.textContent = '🔴';
+  chatInput.placeholder = 'Listening… (press again to send)';
+  chatInput.disabled = true;
 
   // BMO shows a listening face
   if (currentState === 'idle' && !isAnimating) {
@@ -1567,18 +1579,22 @@ function startVoiceInput() {
   }
 
   if (window.joemac && window.joemac.startListening) window.joemac.startListening();
-
-  try { recognition.start(); } catch (e) { stopVoiceInput(); }
+  mediaRecorder.start();
+  console.log('🎤 Recording started');
+  
+  // Auto-stop after 15 seconds
+  clearTimeout(voiceAutoStopTimer);
+  voiceAutoStopTimer = setTimeout(() => {
+    if (isListening) stopVoiceInput();
+  }, 15000);
 }
 
 function stopVoiceInput() {
   if (!isListening) return;
   isListening = false;
   micBtn.classList.remove('listening');
-  micBtn.textContent       = '🎤';
-  chatInput.placeholder    = 'Talk to BMO…';
-  chatInput.disabled       = false;
-
+  micBtn.textContent = '🎤';
+  
   if (!isAnimating && currentState === 'idle') {
     setScreenColor('idle');
     setMouth('closed');
@@ -1586,7 +1602,11 @@ function stopVoiceInput() {
   }
 
   if (window.joemac && window.joemac.stopListening) window.joemac.stopListening();
-  try { if (recognition) recognition.stop(); } catch (e) {}
+  
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    mediaRecorder.stop();
+    console.log('🎤 Recording stopped, processing...');
+  }
 }
 
 micBtn.addEventListener('click', () => {
@@ -1594,12 +1614,29 @@ micBtn.addEventListener('click', () => {
     stopVoiceInput();
   } else {
     showChatBar();
-    setTimeout(startVoiceInput, 100); // slight delay so bar animates in first
+    setTimeout(startVoiceInput, 100);
   }
 });
 
-// Initialize speech recognition on load (checks availability)
-initSpeechRecognition();
+// Global hotkey: Cmd+Shift+B hold-to-talk
+if (window.joemac) {
+  if (window.joemac.onToggleVoice) {
+    window.joemac.onToggleVoice(() => {
+      if (isListening) stopVoiceInput();
+      else { showChatBar(); setTimeout(startVoiceInput, 100); }
+    });
+  }
+  if (window.joemac.onVoiceStart) {
+    window.joemac.onVoiceStart(() => {
+      if (!isListening) { showChatBar(); setTimeout(startVoiceInput, 100); }
+    });
+  }
+  if (window.joemac.onVoiceStop) {
+    window.joemac.onVoiceStop(() => {
+      if (isListening) stopVoiceInput();
+    });
+  }
+}
 
 // ─── Debug ────────────────────────────────────────
 window._bmo = {

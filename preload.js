@@ -54,7 +54,19 @@ contextBridge.exposeInMainWorld('joemac', {
     ipcRenderer.on('chat-response', (_event, data) => callback(data));
   },
 
-  // Voice input notifications
+  // Voice input
   startListening: () => ipcRenderer.send('start-listening'),
-  stopListening:  () => ipcRenderer.send('stop-listening'),
+  stopListening:  () => { ipcRenderer.send('stop-listening'); ipcRenderer.send('voice-ended'); },
+  sendVoiceAudio: (base64) => ipcRenderer.invoke('voice-audio', base64),
+
+  // Global hotkey hold-to-talk
+  onToggleVoice: (callback) => {
+    ipcRenderer.on('toggle-voice', () => callback());
+  },
+  onVoiceStart: (callback) => {
+    ipcRenderer.on('voice-start', () => callback());
+  },
+  onVoiceStop: (callback) => {
+    ipcRenderer.on('voice-stop', () => callback());
+  },
 });

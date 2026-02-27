@@ -1,31 +1,44 @@
 {
-  "name": "joemac-avatar",
+  "name": "beemo",
   "version": "1.0.0",
-  "description": "BMO-style floating desktop companion for JoeMac",
+  "description": "Beemo — AI desktop companion with voice chat",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "bridge": "node bridge.js",
-    "build": "electron-builder --mac",
-    "dist": "electron-builder --mac --publish never"
+    "build": "electron-builder --mac --win",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win",
+    "dist": "electron-builder --mac --win --publish never"
   },
-  "keywords": ["electron", "bmo", "avatar", "desktop", "companion"],
-  "author": "JoeMac",
+  "keywords": ["electron", "beemo", "bmo", "avatar", "desktop", "companion", "ai", "voice"],
+  "author": "Beemo",
   "license": "MIT",
   "devDependencies": {
     "electron": "^28.0.0",
     "electron-builder": "^24.0.0"
   },
   "build": {
-    "appId": "com.openclaw.bmo-avatar",
-    "productName": "BMO Avatar",
+    "appId": "com.beemo.app",
+    "productName": "Beemo",
     "mac": {
       "category": "public.app-category.utilities",
       "icon": "build/icon.icns",
       "target": ["dmg", "zip"]
     },
+    "win": {
+      "icon": "build/icon.png",
+      "target": ["nsis", "portable"]
+    },
+    "nsis": {
+      "oneClick": true,
+      "allowToChangeInstallationDirectory": false,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
     "dmg": {
-      "title": "BMO Avatar",
+      "title": "Beemo",
       "contents": [
         { "x": 130, "y": 220 },
         { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
@@ -35,7 +48,7 @@
       "main.js",
       "preload.js",
       "renderer/**/*",
-      "bridge.js",
+      "messages.json",
       "package.json"
     ],
     "extraResources": []
