@@ -1366,6 +1366,241 @@ window.addEventListener('mouseup', async () => {
   requestAnimationFrame(tick);
 });
 
+// ─── Chat Input UI ───────────────────────────────────────────────────────────
+const chatBar          = document.getElementById('chat-bar');
+const chatInput        = document.getElementById('chat-input');
+const sendBtn          = document.getElementById('send-btn');
+const micBtn           = document.getElementById('mic-btn');
+const chatResponseArea = document.getElementById('chat-response-area');
+
+let chatVisible  = false;
+let chatPending  = false;
+let isListening  = false;
+let recognition  = null;
+
+// ── Show / Hide ────────────────────────────────────
+function showChatBar() {
+  if (chatVisible) return;
+  chatVisible = true;
+  chatBar.classList.remove('hidden');
+  // Disable click-through while chat bar is visible (it captures its own mouse)
+  if (window.joemac && window.joemac.setIgnoreMouse) window.joemac.setIgnoreMouse(false);
+  setTimeout(() => chatInput.focus(), 50);
+}
+
+function hideChatBar() {
+  if (!chatVisible) return;
+  chatVisible = false;
+  chatBar.classList.add('hidden');
+  chatInput.blur();
+  stopVoiceInput();
+  // Re-enable click-through — but only if mouse isn't over BMO
+  setTimeout(() => {
+    if (!bmoWrapper.matches(':hover') && !speechBubble.matches(':hover')) {
+      if (window.joemac && window.joemac.setIgnoreMouse) window.joemac.setIgnoreMouse(true);
+    }
+  }, 120);
+}
+
+function toggleChatBar() {
+  if (chatVisible) hideChatBar(); else showChatBar();
+}
+
+// Mouse capture for the chat bar
+chatBar.addEventListener('mouseenter', () => {
+  if (window.joemac && window.joemac.setIgnoreMouse) window.joemac.setIgnoreMouse(false);
+});
+chatBar.addEventListener('mouseleave', () => {
+  if (!chatInput.matches(':focus')) {
+    if (window.joemac && window.joemac.setIgnoreMouse) window.joemac.setIgnoreMouse(true);
+  }
+});
+chatInput.addEventListener('focus', () => {
+  if (window.joemac && window.joemac.setIgnoreMouse) window.joemac.setIgnoreMouse(false);
+});
+chatInput.addEventListener('blur', () => {
+  setTimeout(() => {
+    if (!chatBar.matches(':hover')) {
+      if (window.joemac && window.joemac.setIgnoreMouse) window.joemac.setIgnoreMouse(true);
+    }
+  }, 150);
+});
+
+// ── Keyboard shortcuts ──────────────────────────────
+chatInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendChatMessage();
+  }
+  if (e.key === 'Escape') {
+    hideChatBar();
+  }
+});
+
+// Global Enter / Escape — only works when window is focused
+document.addEventListener('keydown', (e) => {
+  if (e.target === chatInput) return; // handled above
+  if (e.key === 'Escape' && chatVisible) {
+    hideChatBar();
+  }
+});
+
+// ── BMO click also toggles chat bar ────────────────
+// We patch the existing bmoWrapper click: if chat is hidden, also show it
+bmoWrapper.addEventListener('click', () => {
+  if (!chatVisible) showChatBar();
+  // Existing click reactions (registered earlier) still fire normally
+});
+
+// ── Show BMO response text in chat bar ─────────────
+function showChatResponse(text) {
+  if (!chatVisible) return;
+  const preview = text.length > 65 ? text.substring(0, 62) + '…' : text;
+  chatResponseArea.textContent = `BMO: ${preview}`;
+  chatResponseArea.classList.add('visible');
+  // Auto-hide after 6s
+  clearTimeout(showChatResponse._timer);
+  showChatResponse._timer = setTimeout(() => {
+    chatResponseArea.classList.remove('visible');
+    setTimeout(() => { chatResponseArea.textContent = ''; }, 200);
+  }, 6000);
+}
+
+function showChatError(msg) {
+  chatResponseArea.textContent = `⚠ ${msg}`;
+  chatResponseArea.classList.add('visible');
+  clearTimeout(showChatResponse._timer);
+  showChatResponse._timer = setTimeout(() => {
+    chatResponseArea.classList.remove('visible');
+    setTimeout(() => { chatResponseArea.textContent = ''; }, 200);
+  }, 4000);
+}
+
+// ── Send message ────────────────────────────────────
+async function sendChatMessage() {
+  const text = chatInput.value.trim();
+  if (!text || chatPending) return;
+
+  chatInput.value = '';
+  chatPending     = true;
+  sendBtn.disabled = true;
+
+  // Show waiting hint in chat bar
+  chatResponseArea.textContent = 'BMO is thinking…';
+  chatResponseArea.classList.add('visible');
+
+  if (window.joemac && window.joemac.sendChatMessage) {
+    const result = await window.joemac.sendChatMessage(text);
+    if (result && !result.ok) {
+      showChatError(result.error || 'Something went wrong');
+    }
+    // On success, showChatResponse is called via onChatResponse below
+  }
+
+  chatPending      = false;
+  sendBtn.disabled = false;
+}
+
+sendBtn.addEventListener('click', sendChatMessage);
+
+// Listen for BMO's response text from main process
+if (window.joemac && window.joemac.onChatResponse) {
+  window.joemac.onChatResponse((data) => {
+    if (data && data.text) showChatResponse(data.text);
+  });
+}
+
+// ── Voice Input (Web Speech API) ────────────────────
+function initSpeechRecognition() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    micBtn.title    = 'Voice input not supported in this Electron build';
+    micBtn.disabled = true;
+    micBtn.style.opacity = '0.3';
+    return false;
+  }
+
+  recognition               = new SR();
+  recognition.continuous    = false;
+  recognition.interimResults = false;
+  recognition.lang          = 'en-US';
+
+  recognition.onresult = (e) => {
+    const transcript = e.results[0][0].transcript;
+    chatInput.value  = transcript;
+    stopVoiceInput();
+    sendChatMessage();
+  };
+
+  recognition.onerror = (e) => {
+    console.warn('Speech error:', e.error);
+    stopVoiceInput();
+    if (e.error === 'not-allowed') {
+      showChatError('Mic permission denied');
+    } else if (e.error === 'no-speech') {
+      showChatError('No speech detected');
+    }
+  };
+
+  recognition.onend = () => {
+    if (isListening) stopVoiceInput();
+  };
+
+  return true;
+}
+
+function startVoiceInput() {
+  if (!recognition && !initSpeechRecognition()) return;
+  if (isListening) return;
+
+  isListening = true;
+  micBtn.classList.add('listening');
+  micBtn.textContent       = '🔴';
+  chatInput.placeholder    = 'Listening…';
+  chatInput.disabled       = true;
+
+  // BMO shows a listening face
+  if (currentState === 'idle' && !isAnimating) {
+    setScreenColor('curious');
+    setMouth('o');
+    setEyeStyle('wide');
+  }
+
+  if (window.joemac && window.joemac.startListening) window.joemac.startListening();
+
+  try { recognition.start(); } catch (e) { stopVoiceInput(); }
+}
+
+function stopVoiceInput() {
+  if (!isListening) return;
+  isListening = false;
+  micBtn.classList.remove('listening');
+  micBtn.textContent       = '🎤';
+  chatInput.placeholder    = 'Talk to BMO…';
+  chatInput.disabled       = false;
+
+  if (!isAnimating && currentState === 'idle') {
+    setScreenColor('idle');
+    setMouth('closed');
+    resetEyes();
+  }
+
+  if (window.joemac && window.joemac.stopListening) window.joemac.stopListening();
+  try { if (recognition) recognition.stop(); } catch (e) {}
+}
+
+micBtn.addEventListener('click', () => {
+  if (isListening) {
+    stopVoiceInput();
+  } else {
+    showChatBar();
+    setTimeout(startVoiceInput, 100); // slight delay so bar animates in first
+  }
+});
+
+// Initialize speech recognition on load (checks availability)
+initSpeechRecognition();
+
 // ─── Debug ────────────────────────────────────────
 window._bmo = {
   wave:     () => doWave(),
@@ -1378,4 +1613,6 @@ window._bmo = {
   sparkle:  () => spawnSparkles(10),
   screen:   (mood) => setScreenColor(mood),
   state:    () => ({ state: currentState, sitting: isSitting, sleeping: isSleeping }),
+  chat:     () => showChatBar(),
+  toggleChat: () => toggleChatBar(),
 };

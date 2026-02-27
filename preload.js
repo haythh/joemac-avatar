@@ -44,4 +44,17 @@ contextBridge.exposeInMainWorld('joemac', {
   getScreenBounds: () => ipcRenderer.invoke('get-screen-bounds'),
   startDrag: () => ipcRenderer.send('start-manual-drag'),
   setIgnoreMouse: (ignore) => ipcRenderer.send('set-ignore-mouse', ignore),
+
+  // ─── Chat / AI ────────────────────────────────────────────────────────────
+  // Send a chat message to Gemini, returns { ok, text, emotion, error }
+  sendChatMessage: (text) => ipcRenderer.invoke('chat-message', text),
+
+  // Listen for BMO's chat response (stripped of emotion tag)
+  onChatResponse: (callback) => {
+    ipcRenderer.on('chat-response', (_event, data) => callback(data));
+  },
+
+  // Voice input notifications
+  startListening: () => ipcRenderer.send('start-listening'),
+  stopListening:  () => ipcRenderer.send('stop-listening'),
 });

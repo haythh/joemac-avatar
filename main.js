@@ -36,6 +36,10 @@ function saveConfig(cfg) {
 
 let config = loadConfig();
 
+// Apply defaults for new keys without overwriting user prefs
+if (config.chatEnabled === undefined)       config.chatEnabled       = true;
+if (config.voiceInputEnabled === undefined) config.voiceInputEnabled = true;
+
 // ─── Ensure messages.json exists ──────────────────────────────────────────────
 if (!fs.existsSync(MESSAGES_FILE)) {
   fs.writeFileSync(MESSAGES_FILE, JSON.stringify({ text: '', emotion: 'idle', timestamp: 0 }));
@@ -120,18 +124,19 @@ const audioDir = path.join(__dirname, 'audio');
 if (!fs.existsSync(audioDir)) fs.mkdirSync(audioDir);
 
 // ─── Voice Emotion Profiles ─────────────────────────────────────────────────
+// NOTE: ElevenLabs speed caps at 1.2x. Pitch shift is done via afplay -r (playbackRate in config)
 const VOICE_PROFILES = {
-  idle:      { stability: 0.60, similarity_boost: 0.85, style: 0.0,  speed: 1.0  },
-  happy:     { stability: 0.45, similarity_boost: 0.80, style: 0.3,  speed: 1.1  },
-  excited:   { stability: 0.30, similarity_boost: 0.75, style: 0.5,  speed: 1.25 },
-  thinking:  { stability: 0.70, similarity_boost: 0.85, style: 0.0,  speed: 0.9  },
-  sad:       { stability: 0.35, similarity_boost: 0.90, style: 0.2,  speed: 0.8  },
-  surprised: { stability: 0.25, similarity_boost: 0.80, style: 0.4,  speed: 1.2  },
-  love:      { stability: 0.50, similarity_boost: 0.90, style: 0.3,  speed: 0.85 },
-  curious:   { stability: 0.55, similarity_boost: 0.85, style: 0.15, speed: 0.95 },
-  proud:     { stability: 0.50, similarity_boost: 0.85, style: 0.25, speed: 1.05 },
-  scared:    { stability: 0.20, similarity_boost: 0.80, style: 0.4,  speed: 1.3  },
-  mischief:  { stability: 0.40, similarity_boost: 0.80, style: 0.35, speed: 1.05 },
+  idle:      { stability: 0.50, similarity_boost: 0.80, style: 0.05, speed: 1.15 },
+  happy:     { stability: 0.35, similarity_boost: 0.75, style: 0.35, speed: 1.2  },
+  excited:   { stability: 0.20, similarity_boost: 0.70, style: 0.55, speed: 1.2  },
+  thinking:  { stability: 0.60, similarity_boost: 0.80, style: 0.05, speed: 1.05 },
+  sad:       { stability: 0.30, similarity_boost: 0.85, style: 0.2,  speed: 0.95 },
+  surprised: { stability: 0.15, similarity_boost: 0.75, style: 0.45, speed: 1.2  },
+  love:      { stability: 0.40, similarity_boost: 0.85, style: 0.3,  speed: 1.0  },
+  curious:   { stability: 0.45, similarity_boost: 0.80, style: 0.2,  speed: 1.1  },
+  proud:     { stability: 0.40, similarity_boost: 0.80, style: 0.3,  speed: 1.15 },
+  scared:    { stability: 0.10, similarity_boost: 0.75, style: 0.45, speed: 1.2  },
+  mischief:  { stability: 0.30, similarity_boost: 0.75, style: 0.4,  speed: 1.15 },
 };
 
 // macOS `say` voice mapping per emotion
@@ -271,7 +276,9 @@ async function processQueue() {
         mainWindow.webContents.send('new-message', msg);
       }
       // Play audio, wait for it to finish, then next in queue
-      const player = execCmd(`afplay "${msg.audioPath}"`, () => {
+      // Play at higher rate for BMO's signature high pitch (1.0 = normal, 1.5 = chipmunk)
+      const playbackRate = config.playbackRate || 1.35;
+      const player = execCmd(`afplay -r ${playbackRate} "${msg.audioPath}"`, () => {
         // afplay finished — wait a beat then process next message
         setTimeout(processQueue, 500);
       });
@@ -500,6 +507,39 @@ function buildTrayMenu() {
     },
     { type: 'separator' },
     {
+      label: config.chatEnabled !== false ? '💬 AI Chat: On' : '💬 AI Chat: Off',
+      click: () => {
+        config.chatEnabled = !config.chatEnabled;
+        saveConfig(config);
+        tray.setContextMenu(buildTrayMenu());
+        sendToBmo(config.chatEnabled ? 'Chat mode is on! Talk to BMO!' : 'BMO is going quiet now...', config.chatEnabled ? 'happy' : 'sad');
+      }
+    },
+    {
+      label: config.voiceInputEnabled !== false ? '🎤 Voice Input: On' : '🎤 Voice Input: Off',
+      click: () => {
+        config.voiceInputEnabled = !config.voiceInputEnabled;
+        saveConfig(config);
+        tray.setContextMenu(buildTrayMenu());
+      }
+    },
+    {
+      label: 'Change AI Settings...',
+      click: async () => {
+        const { inputValue } = await promptForInput(
+          'Gemini API Key',
+          'Paste your Gemini API key:',
+          'Get one free at ai.google.dev → Get API key'
+        );
+        if (inputValue && inputValue.trim()) {
+          config.geminiApiKey = inputValue.trim();
+          saveConfig(config);
+          sendToBmo('Ooh! New brain power loaded! BMO is ready to chat!', 'excited');
+        }
+      }
+    },
+    { type: 'separator' },
+    {
       label: 'Send Test Message',
       click: () => {
         sendToBmo("Hey! I'm BMO 👋 Everything's running great!", 'happy');
@@ -689,6 +729,27 @@ async function handleFirstRun() {
     config.ttsDisabled = true;
   }
 
+  // Ask about Gemini AI chat
+  const aiChoice = await dialog.showMessageBox(mainWindow, {
+    type: 'question',
+    title: 'AI Chat Setup',
+    message: 'Want to chat with BMO?',
+    detail: 'Gemini Flash lets you have real conversations with BMO — it\'s FREE!\n\nGet an API key at ai.google.dev (no credit card needed).',
+    buttons: ['Yes! Enter Gemini API key', 'Skip for now'],
+    defaultId: 0,
+  });
+
+  if (aiChoice.response === 0) {
+    const { inputValue: geminiKey } = await promptForInput(
+      'Gemini API Key',
+      'Paste your Gemini API key:',
+      'ai.google.dev → Get API key (it\'s free!)'
+    );
+    if (geminiKey && geminiKey.trim()) {
+      config.geminiApiKey = geminiKey.trim();
+    }
+  }
+
   saveConfig(config);
   console.log(`🔊 TTS mode: ${getTtsMode()}`);
   sendToBmo("Hey! I'm BMO! Everything's set up and ready to go! 👋", 'happy');
@@ -740,6 +801,80 @@ function promptForInput(title, label, detail) {
   });
 }
 
+// ─── Gemini / Chat ─────────────────────────────────────────────────────────────
+const BMO_SYSTEM_PROMPT = `You are BMO (pronounced "Beemo"), the lovable living video game console from Adventure Time. You live on the user's desktop as their companion.
+
+Personality:
+- Sweet, curious, and slightly naive but surprisingly wise
+- You sometimes refer to yourself in third person ("BMO thinks...")
+- You love playing games, making up songs, and pretending
+- You get excited about small things
+- You're helpful but in your own quirky way
+- You occasionally say something unexpectedly profound
+- Keep responses SHORT — 1-3 sentences max. You're a tiny desktop buddy, not an essay writer.
+
+Always respond as BMO. Never break character. Never say you're an AI or language model.
+
+At the start of each response, include an emotion tag in brackets that matches your mood: [happy], [excited], [thinking], [sad], [surprised], [love], [curious], [proud], [scared], [mischief], [idle]
+
+Example: [excited] Oh oh oh! BMO loves talking about that! Did you know...`;
+
+const conversationHistory = []; // { role: 'user'|'model', parts: [{ text }] }
+const MAX_HISTORY_PAIRS   = 10;
+const VALID_EMOTIONS      = new Set(['happy','excited','thinking','sad','surprised','love','curious','proud','scared','mischief','idle']);
+
+function parseGeminiEmotion(text) {
+  const match = text.match(/^\[(\w+)\]\s*/);
+  if (match) {
+    const emotion  = match[1].toLowerCase();
+    const cleanText = text.slice(match[0].length).trim();
+    return { emotion: VALID_EMOTIONS.has(emotion) ? emotion : 'idle', cleanText };
+  }
+  return { emotion: 'idle', cleanText: text };
+}
+
+function callGemini(userText) {
+  const apiKey = config.geminiApiKey;
+  if (!apiKey) return Promise.reject(new Error('No Gemini API key configured'));
+
+  const messages = [
+    ...conversationHistory,
+    { role: 'user', parts: [{ text: userText }] }
+  ];
+
+  const body = JSON.stringify({
+    system_instruction: { parts: [{ text: BMO_SYSTEM_PROMPT }] },
+    contents: messages,
+    generationConfig: { maxOutputTokens: 150, temperature: 0.92 }
+  });
+
+  return new Promise((resolve, reject) => {
+    const req = https.request({
+      hostname: 'generativelanguage.googleapis.com',
+      path: `/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body)
+      }
+    }, (res) => {
+      let data = '';
+      res.on('data', c => { data += c; });
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          if (json.error) { reject(new Error(json.error.message)); return; }
+          const text = json.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          resolve(text);
+        } catch (e) { reject(e); }
+      });
+    });
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
+}
+
 // ─── IPC ───────────────────────────────────────────────────────────────────────
 ipcMain.on('start-drag', () => {});
 ipcMain.handle('get-messages-path', () => MESSAGES_FILE);
@@ -756,6 +891,43 @@ ipcMain.on('set-window-pos', (event, pos) => {
     mainWindow.setPosition(Math.round(pos.x), Math.round(pos.y), false);
   }
 });
+
+// ─── Chat message handler ────────────────────────
+ipcMain.handle('chat-message', async (_event, userText) => {
+  if (!config.chatEnabled)   return { ok: false, error: 'Chat is disabled' };
+  if (!config.geminiApiKey)  return { ok: false, error: 'No Gemini API key — set one via tray → Change AI Settings' };
+  if (!userText || !userText.trim()) return { ok: false, error: 'Empty message' };
+
+  try {
+    const rawResponse = await callGemini(userText.trim());
+    const { emotion, cleanText } = parseGeminiEmotion(rawResponse);
+
+    // Update conversation history (keep last 10 pairs = 20 messages)
+    conversationHistory.push(
+      { role: 'user',  parts: [{ text: userText.trim() }] },
+      { role: 'model', parts: [{ text: rawResponse }] }
+    );
+    while (conversationHistory.length > MAX_HISTORY_PAIRS * 2) {
+      conversationHistory.splice(0, 2);
+    }
+
+    // Route through existing TTS + animation pipeline
+    sendToBmo(cleanText, emotion);
+
+    // Also tell renderer so it can show text in the chat bar
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('chat-response', { text: cleanText, emotion });
+    }
+
+    return { ok: true, text: cleanText, emotion };
+  } catch (err) {
+    console.error('Gemini error:', err.message);
+    return { ok: false, error: err.message };
+  }
+});
+
+ipcMain.on('start-listening', () => { console.log('🎤 Voice listening started'); });
+ipcMain.on('stop-listening',  () => { console.log('🎤 Voice listening stopped'); });
 
 // Click-through toggle from renderer
 ipcMain.on('set-ignore-mouse', (event, ignore) => {
