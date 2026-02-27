@@ -595,9 +595,9 @@ function createWindow() {
 
   mainWindow = new BrowserWindow({
     width: 320,
-    height: 540,
+    height: 620,
     x: screenW - 360,
-    y: screenH - 580,
+    y: screenH - 660,
     frame: false,
     transparent: true,
     backgroundColor: '#00000000',
@@ -887,8 +887,16 @@ ipcMain.handle('get-window-pos', () => {
 });
 
 ipcMain.on('set-window-pos', (event, pos) => {
-  if (mainWindow && pos && typeof pos.x === 'number' && typeof pos.y === 'number' && isFinite(pos.x) && isFinite(pos.y)) {
-    mainWindow.setPosition(Math.round(pos.x), Math.round(pos.y), false);
+  try {
+    if (mainWindow && !mainWindow.isDestroyed() && pos && typeof pos.x === 'number' && typeof pos.y === 'number' && isFinite(pos.x) && isFinite(pos.y)) {
+      const x = Math.round(pos.x);
+      const y = Math.round(pos.y);
+      if (x >= -10000 && x <= 10000 && y >= -10000 && y <= 10000) {
+        mainWindow.setPosition(x, y, false);
+      }
+    }
+  } catch (e) {
+    // Silently ignore position errors (NaN, destroyed window, etc.)
   }
 });
 
